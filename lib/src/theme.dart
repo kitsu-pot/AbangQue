@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 abstract final class JeepLinkColors {
   static const green = Color(0xFF176449);
   static const ink = Color(0xFF172F28);
-  static const muted = Color(0xFF62766C);
+  static const muted = Color(0xFF50675B);
   static const background = Color(0xFFF5F7F2);
   static const line = Color(0xFFE2E8DF);
-  static const lime = Color(0xFFDCEF9B);
+  static const lime = Color(0xFFBEEDD2);
   static const paleGreen = Color(0xFFE9F2E7);
   static const amber = Color(0xFF8A4D17);
   static const paleAmber = Color(0xFFFFEEDB);
@@ -20,7 +20,7 @@ abstract final class JeepLinkColors {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: Colors.transparent,
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
           fontSize: 34,
@@ -51,7 +51,7 @@ abstract final class JeepLinkColors {
         labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: background,
+        backgroundColor: Colors.transparent,
         foregroundColor: ink,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -86,8 +86,9 @@ abstract final class JeepLinkColors {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: Colors.white,
-        indicatorColor: paleGreen,
+        backgroundColor: Colors.transparent,
+        indicatorColor: lime,
+        surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,

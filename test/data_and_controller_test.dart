@@ -8,33 +8,25 @@ import 'fakes.dart';
 Future<void> flushEvents() => Future<void>.delayed(Duration.zero);
 
 void main() {
-  test(
-    'demo snapshots are labeled and occupancy is internally consistent',
-    () async {
-      final now = DateTime.utc(2026, 10, 31);
-      final repository = DemoJeepneyRepository(clock: () => now);
-      final first = await repository.watchJeepneys().first;
-      expect(first, hasLength(3));
-      expect(first.map((v) => v.id).toSet(), hasLength(3));
-      expect(
-        first.every((v) => v.source == DataSource.demo && v.recordedAt == now),
-        isTrue,
-      );
-      expect(
-        first
-            .where((v) => v.status == OccupancyStatus.full)
-            .single
-            .availableSeats,
-        0,
-      );
-      expect(
-        first.where((v) => v.status == OccupancyStatus.available),
-        hasLength(2),
-      );
-      expect(() => first.clear(), throwsUnsupportedError);
-      await repository.dispose();
-    },
-  );
+  test('demo snapshots use manual status examples and never ETA or fresh device reports', () async {
+    final now = DateTime.utc(2026, 10, 31);
+    final repository = DemoJeepneyRepository(clock: () => now);
+    final first = await repository.watchJeepneys().first;
+    expect(first, hasLength(3));
+    expect(first.map((v) => v.id).toSet(), hasLength(3));
+    expect(
+      first.every((v) => v.source == DataSource.demo && v.recordedAt == now),
+      isTrue,
+    );
+    expect(first.every((v) => v.eta == null && !v.hasFreshReport), isTrue);
+    expect(first.where((v) => v.status == OccupancyStatus.full), hasLength(1));
+    expect(
+      first.where((v) => v.status == OccupancyStatus.available),
+      hasLength(2),
+    );
+    expect(() => first.clear(), throwsUnsupportedError);
+    await repository.dispose();
+  });
 
   test(
     'refresh advances the simulator and new subscribers get current data',
@@ -46,9 +38,12 @@ void main() {
       await repository.refresh();
       await flushEvents();
       expect(events, hasLength(2));
-      expect(events[0].first.eta, const Duration(minutes: 4));
-      expect(events[1].first.eta, const Duration(minutes: 5));
-      expect(events[1].first.availableSeats, 6);
+      expect(events[0].first.eta, isNull);
+      expect(events[1].first.eta, isNull);
+      expect(
+        events[1].first.position!.latitude,
+        isNot(events[0].first.position!.latitude),
+      );
       final latest = await repository.watchJeepneys().first;
       expect(
         latest.first.position!.latitude,
@@ -90,7 +85,7 @@ void main() {
       await controller.refresh();
       await flushEvents();
       expect(controller.error, isNull);
-      expect(controller.vehicles.first.eta, const Duration(minutes: 5));
+      expect(controller.vehicles.first.eta, isNull);
       controller.dispose();
       await repository.dispose();
     },

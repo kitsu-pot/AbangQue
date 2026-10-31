@@ -158,10 +158,6 @@ Jeepney parseApiJeepney(dynamic value) {
     id: j['id'],
     name: j['name'],
     position: point,
-    passengerCount: null,
-    capacity: null,
-    // Phase 2 has no ETA contract beyond null. Never invent one.
-    eta: null,
     recordedAt: recorded,
     lastSeenAt: seen,
     source: j['source'] == 'demo' ? DataSource.demo : DataSource.hardware,

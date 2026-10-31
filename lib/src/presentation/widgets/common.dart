@@ -1,29 +1,63 @@
-import '../../config/data_config.dart';
-
 import 'package:flutter/material.dart';
 
+import '../../config/data_config.dart';
 import '../../domain/jeepney.dart';
 import '../../theme.dart';
+import 'glass.dart';
+
+/// Keeps action text in normal flow even at large accessibility font sizes.
+class PassengerButton extends StatelessWidget {
+  const PassengerButton({
+    super.key,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    this.style,
+  });
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final Widget label;
+  final ButtonStyle? style;
+  @override
+  Widget build(BuildContext context) => FilledButton(
+    onPressed: onPressed,
+    style: style,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          icon,
+          const SizedBox(width: 10),
+          Flexible(child: label),
+        ],
+      ),
+    ),
+  );
+}
 
 class DemoBadge extends StatelessWidget {
   const DemoBadge({super.key, this.dark = false, this.label});
   final bool dark;
   final String? label;
-
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
     decoration: BoxDecoration(
-      color: dark ? JeepLinkColors.lime : JeepLinkColors.paleAmber,
-      borderRadius: BorderRadius.circular(7),
+      color: dark ? const Color(0xFFD5F4DF) : JeepLinkColors.paleGreen,
+      borderRadius: BorderRadius.circular(30),
+      border: Border.all(
+        color: dark ? Colors.white38 : const Color(0xFFD0E4DA),
+      ),
     ),
     child: Text(
       label ?? modeText(context, 'DEMO', 'API'),
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 10,
+        height: 1.2,
         fontWeight: FontWeight.w800,
-        letterSpacing: 1.2,
-        color: dark ? JeepLinkColors.ink : JeepLinkColors.amber,
+        letterSpacing: 1,
+        color: JeepLinkColors.green,
       ),
     ),
   );
@@ -31,30 +65,31 @@ class DemoBadge extends StatelessWidget {
 
 class DemoNotice extends StatelessWidget {
   const DemoNotice({super.key});
-
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(13),
-    decoration: BoxDecoration(
-      color: JeepLinkColors.paleAmber,
-      borderRadius: BorderRadius.circular(14),
-    ),
+  Widget build(BuildContext context) => GlassPanel(
+    radius: 20,
+    padding: const EdgeInsets.all(14),
+    tint: const Color(0xFFF2F5E8),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.science_outlined, size: 20, color: JeepLinkColors.amber),
-        SizedBox(width: 10),
+        const Icon(
+          Icons.info_outline_rounded,
+          size: 19,
+          color: JeepLinkColors.green,
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             modeText(
               context,
-              'DEMO only. Locations, seats, and ETAs are simulated. No live tracking or official routes.',
-              'API data. Historical DEMO records are not current availability. Stale or unknown status is not a seat guarantee. ETA unavailable.',
+              'DEMO mode · Fictional locations and manual-status examples. No verified GPS tracking.',
+              'Last reported data · Historical DEMO records are not current reports. Check freshness before travelling.',
             ),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               height: 1.5,
-              color: JeepLinkColors.amber,
+              color: JeepLinkColors.ink,
             ),
           ),
         ),
@@ -71,63 +106,50 @@ class SurfaceCard extends StatelessWidget {
   });
   final Widget child;
   final EdgeInsetsGeometry padding;
-
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: const BorderSide(color: JeepLinkColors.line),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: Padding(padding: padding, child: child),
-  );
+  Widget build(BuildContext context) =>
+      GlassPanel(padding: padding, child: child);
 }
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status, this.label});
   final OccupancyStatus status;
   final String? label;
-
   @override
   Widget build(BuildContext context) {
-    final full = status == OccupancyStatus.full;
-    final unknown = status == OccupancyStatus.unknown;
-    final color = unknown
-        ? JeepLinkColors.muted
-        : full
-        ? JeepLinkColors.amber
-        : JeepLinkColors.green;
+    final color = switch (status) {
+      OccupancyStatus.available => JeepLinkColors.green,
+      OccupancyStatus.full => JeepLinkColors.amber,
+      OccupancyStatus.unknown => JeepLinkColors.muted,
+    };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: unknown
-            ? JeepLinkColors.line
-            : full
-            ? JeepLinkColors.paleAmber
-            : JeepLinkColors.paleGreen,
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: .09),
+        border: Border.all(color: color.withValues(alpha: .16)),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            unknown
-                ? Icons.help_outline
-                : full
-                ? Icons.do_not_disturb_on_rounded
-                : Icons.check_circle_rounded,
-            size: 12,
+            switch (status) {
+              OccupancyStatus.available => Icons.check_circle_outline_rounded,
+              OccupancyStatus.full => Icons.do_not_disturb_on_outlined,
+              OccupancyStatus.unknown => Icons.help_outline_rounded,
+            },
+            size: 14,
             color: color,
           ),
-          const SizedBox(width: 5),
-          Text(
-            label ?? status.name.toUpperCase(),
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: .4,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label ?? status.name.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -136,119 +158,126 @@ class StatusBadge extends StatelessWidget {
   }
 }
 
-String etaText(Jeepney jeepney) => jeepney.eta == null || jeepney.isStale
-    ? 'Unavailable'
-    : '${jeepney.eta!.inMinutes} min';
+String etaText(Jeepney jeepney) => 'ETA unavailable';
+String reportTime(DateTime? date) {
+  if (date == null) return 'Not reported';
+  final utc = date.toUtc();
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  String pad(int value) => value.toString().padLeft(2, '0');
+  return '${utc.day} ${months[utc.month - 1]} ${utc.year} · ${pad(utc.hour)}:${pad(utc.minute)} UTC';
+}
 
 class JeepneyCard extends StatelessWidget {
   const JeepneyCard({super.key, required this.jeepney, required this.onTap});
   final Jeepney jeepney;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: 'Details for ${jeepney.name}',
-    child: Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: JeepLinkColors.line),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: ValueKey('vehicle-${jeepney.id}'),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    child: GlassPanel(
+      key: ValueKey('vehicle-${jeepney.id}'),
+      onTap: onTap,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: JeepLinkColors.paleGreen,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: const Icon(
-                      Icons.airport_shuttle_rounded,
-                      color: JeepLinkColors.green,
-                      size: 27,
-                    ),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(17),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD4EFDF), Color(0xFFEFF8EC)],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          jeepney.id,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text(
-                          jeepney.sourceLabel,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: JeepLinkColors.muted,
-                  ),
-                ],
+                  border: Border.all(color: Colors.white),
+                ),
+                child: const Icon(
+                  Icons.airport_shuttle_rounded,
+                  color: JeepLinkColors.green,
+                  size: 27,
+                ),
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  StatusBadge(
-                    status: jeepney.status,
-                    label: jeepney.statusLabel,
-                  ),
-                  Text(
-                    jeepney.availableSeats == null
-                        ? 'Seat count unknown'
-                        : '${jeepney.availableSeats} seats open',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(height: 1),
-              ),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    size: 16,
-                    color: JeepLinkColors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      jeepney.fromApi ? 'ETA' : 'DEMO ETA',
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      jeepney.id,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      jeepney.sourceLabel,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  ),
-                  Text(
-                    etaText(jeepney),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: JeepLinkColors.green,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.north_east_rounded,
+                size: 18,
+                color: JeepLinkColors.muted,
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusBadge(status: jeepney.status, label: jeepney.statusLabel),
+              Text(
+                jeepney.freshnessLabel,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            jeepney.fromApi
+                ? 'Status is manually reported by the driver.'
+                : 'DEMO example of a driver-selected status.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const Divider(height: 28),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Icon(
+                Icons.schedule_rounded,
+                size: 16,
+                color: JeepLinkColors.muted,
+              ),
+              Text(
+                etaText(jeepney),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     ),
   );
@@ -264,7 +293,6 @@ class SectionHeading extends StatelessWidget {
   final String title;
   final String? action;
   final VoidCallback? onAction;
-
   @override
   Widget build(BuildContext context) => Row(
     children: [
@@ -286,29 +314,37 @@ class EmptyState extends StatelessWidget {
   final String title;
   final String message;
   final Widget? action;
-
   @override
-  Widget build(BuildContext context) => SurfaceCard(
-    child: Center(
-      child: Column(
-        children: [
-          const Icon(
+  Widget build(BuildContext context) => GlassPanel(
+    child: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: JeepLinkColors.paleGreen,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
             Icons.travel_explore_rounded,
-            size: 38,
-            color: JeepLinkColors.muted,
+            size: 32,
+            color: JeepLinkColors.green,
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(message, textAlign: TextAlign.center),
-          if (action != null)
-            Padding(padding: const EdgeInsets.only(top: 12), child: action!),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        if (action != null)
+          Padding(padding: const EdgeInsets.only(top: 16), child: action!),
+      ],
     ),
   );
 }

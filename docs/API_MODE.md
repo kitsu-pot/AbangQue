@@ -1,8 +1,8 @@
-# Running JeepLink against the backend
+# Running AbangQue against the backend
 
 The old startup always used DemoJeepneyRepository. The default startup now uses
-ApiJeepneyRepository and shows an **API** badge. The layout and navigation are
-preserved. DATA_MODE=demo explicitly selects the original offline simulator.
+ApiJeepneyRepository and shows an **API** badge on Home. All four screens use the AbangQue glass
+design. DATA_MODE=demo explicitly selects the separate offline simulator.
 
 ## Start and verify the backend first
 
@@ -70,6 +70,23 @@ Use a current emulator (Android API 24 or later) for the domain-scoped debug
 network security configuration. If requests fail, first verify the host endpoint
 above, then verify emulator networking; do not disable firewalls or TLS checks.
 
+## Physical Infinix X6885 (Android 16) via USB
+
+Start the backend as above. Enable USB debugging, connect the phone, accept its
+debugging prompt, and use the exact device ID printed by flutter devices:
+
+```powershell
+flutter devices
+adb -s YOUR_PHONE_ID reverse tcp:3000 tcp:3000
+flutter run -d YOUR_PHONE_ID --debug --dart-define=DATA_MODE=api --dart-define=API_BASE_URL=http://127.0.0.1:3000
+```
+
+If adb is not on PATH, use the executable in your Android SDK platform-tools
+directory. Repeat port reversal after reconnecting/restarting. Keep the backend
+terminal running. 10.0.2.2 is for emulators, not this physical-phone workflow.
+For the simulator use the same flutter run command with DATA_MODE=demo and omit
+API_BASE_URL. Stop and relaunch when changing compile-time defines.
+
 ## Explicit offline demo mode
 
 ```powershell
@@ -78,7 +95,7 @@ flutter run -d windows --debug --dart-define=DATA_MODE=demo
 flutter run -d emulator-5554 --debug --dart-define=DATA_MODE=demo
 ```
 
-This mode displays **DEMO**, has three simulated vehicles and illustrative ETAs,
+This mode displays **DEMO**, has three simulated vehicles and **ETA unavailable**,
 and requires no backend. OSM map tiles still require internet. There is no
 automatic fallback from API to simulator. Change modes by stopping and relaunching
 with the desired defines; hot reload does not change compile-time configuration.
@@ -87,8 +104,7 @@ with the desired defines; hot reload does not change compile-time configuration.
 
 1. API mode must show the API badge and **2 API jeepneys** on the Jeepneys tab
    when the endpoint returns those two records. DEMO-03 must not appear.
-2. Each fixture shows **API · Historical DEMO**, **STALE / UNKNOWN**, **Seat count
-   unknown**, and ETA **Unavailable**. The Available filter count is zero.
+2. Each fixture shows **API · Historical DEMO**, **STALE / UNKNOWN**, and **ETA unavailable**. The Available filter count is zero.
 3. Details show last reported coordinates, measurement/last-seen UTC timestamps,
    and unavailable ETA. Historical lastReportedStatus is never substituted for
    current status. API mode does not invent a sample pickup marker.
@@ -102,8 +118,8 @@ with the desired defines; hot reload does not change compile-time configuration.
    the list but have no map marker or enabled View location action.
 
 API mode only performs GET /api/jeepneys. It sends no Authorization header and
-stores no device credentials. The backend currently provides no passenger count,
-capacity, or ETA contract, so these remain unknown/null. Even non-stale API demo
+stores no device credentials. Passenger counts/capacity are absent from the app;
+ETA is always unavailable pending an explicitly approved calculation. Even non-stale API demo
 records never count as current availability.
 
 Freshness is supplied by the backend on each read, not inferred from historical
@@ -138,11 +154,10 @@ flutter test
 
 Tests cover platform URL selection, release HTTP rejection, API parsing,
 historical/null status, nullable positions, absence of credentials, HTTP errors,
-malformed responses, timeout, refresh/retry, and the original demo UI.
+malformed responses, timeout, refresh/retry, and the redesigned demo UI.
 HTTP clients and map tiles are mocked: no credentials or database are needed.
 
-The local API was unreachable during this implementation, even outside the
-sandbox. Therefore the two-record behavior was verified with an exact-shape API
-fixture, not a live PostgreSQL response. Android device execution remains to be
-verified after starting an emulator. No backend or database contents were changed.
-
+The owner previously verified the Windows API with PostgreSQL and launched the
+app on the Infinix phone. Those are owner-reported results. The redesign tests use
+mock API responses/map tiles and do not repeat physical API or PostgreSQL checks.
+Backend implementation and database contents are unchanged by this redesign.

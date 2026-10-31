@@ -64,8 +64,8 @@ Retain Home, Map, Jeepneys, and Guide navigation. The passenger app should:
 - Show basic jeepney details and when the device last communicated.
 - Support search/filter, refresh, loading, connection errors, retry and empty
   states. Do not silently substitute demo vehicles when API requests fail.
-- Show ETA only when the backend supports a documented, testable calculation.
-  If API eta is null, display **ETA unavailable**.
+- Show **ETA unavailable in API and offline DEMO modes** until an appropriate
+  calculation is explicitly approved and implemented.
 - Show verified route information only when supplied. No invented routes, stops,
   schedules, fares, cooperative records, or operating practices.
 - Explain manual reporting, freshness, GPS limitations, DEMO data and estimates
@@ -192,7 +192,8 @@ current controller snapshot.
 
 API demo records never count as current availability, even if their returned
 status says AVAILABLE. Unknown positions do not create map markers. The current
-adapter keeps seat counts and ETA null. Future non-null ETA support needs an
+passenger model has no numerical seat fields and keeps ETA unavailable in both
+modes. Future non-null ETA support needs an
 explicit agreed API contract; it is not implemented by the existing adapter.
 
 Freshness is updated on successful fetches, not continuously between polls.
@@ -292,28 +293,30 @@ Real GPS/LTE device ingestion, electrical validation, field accuracy, verified
 routes/terminals, real ETA calculation, admin dashboard, deployment, Liquid Glass
 performance, and full Android API acceptance on the physical phone.
 
-## 10. Discrepancies and planned follow-up — no code changed here
+## 10. Passenger redesign implementation (2026-10-31)
 
-| Requirement | Observed source/documentation | Follow-up for an authorized implementation task |
-| --- | --- | --- |
-| AbangQue branding | JeepLink remains in app titles, header, Guide, configuration errors, Android label, iOS display name and web metadata | Update user-facing branding across supported surfaces; keep compatible internals |
-| No numerical seat/occupancy features | Domain retains passengerCount/capacity/availableSeats; demo fixtures supply counts; cards/details show numerical seats and an occupancy bar | Remove count-based presentation and simulator logic; model explicit simulated FULL/AVAILABLE reports instead |
-| Manual status semantics | Offline status is derived from arithmetic seat counts; Guide demo text describes simulated capacity | Use manual-report semantics in both modes, with explicit DEMO labels in simulation |
-| Accurate home summary | “With open seats” actually counts available vehicles; API cards still say “Seat count unknown” | Use clear vehicle/report labels; remove seat-count framing entirely |
-| Liquid Glass design | Existing emerald/cream Material 3 palette and rounded reusable components are largely opaque; no BackdropFilter found in inspected lib sources | Evolve existing components; do not recreate working screens; verify motion/accessibility/performance |
-| Physical phone is primary | Android default URL is emulator-oriented; API_MODE.md emphasizes emulator setup and omits USB reverse workflow | Use explicit loopback override with USB reverse; update operational docs in a later requested documentation pass |
-| Current verified progress | API_MODE.md still records an earlier unreachable backend and pending runtime verification | Treat that as historical; use the owner-reported progress above without claiming a new verification |
-| No fake API ETA | API correctly preserves null ETA; offline simulator still supplies illustrative ETA values | Keep API behavior; clarify whether offline demo ETAs should remain |
-| Status/data age clarity | Backend updates freshness on reads; app polls every 30 seconds | Preserve stale handling; agree on field update/poll intervals before claiming near-real-time behavior |
-| Verified operations only | Simulator has a fictional sample pickup around Boac, not verified terminals/routes | Never convert that sample into operational data; obtain verified inputs before route/ETA work |
+The authorized redesign replaces the earlier discrepancies:
+- AbangQue branding on passenger screens and platform display labels; compatible
+  package identifiers and backend contracts are retained.
+- Numerical seat/occupancy fields, arithmetic and all presentation removed.
+  Simulator statuses are explicit manual-report examples.
+- English interface; ETA unavailable in both API and offline DEMO modes.
+- Home counts vehicles and fresh device reports, excluding historical/demo data.
+- Reusable emerald/mint/cream glass surfaces, floating navigation, map controls,
+  selected-jeepney panels and scrollable report details.
+- Responsive hero keeps text/artwork in normal flow. Large text and reduced
+  motion are supported; bounded blur is limited to navigation.
+- The fictional pickup marker is removed. No verified routes/stops invented.
+- README/API setup docs now describe current behavior and USB phone testing.
+- Repository/polling/freshness/error semantics and separate DEMO mode preserved.
 
-Tests and older README descriptions also encode simulated seat counts. Update
-those tests and documentation together with the eventual count-removal change;
-do not preserve prohibited behavior merely to retain old expectations.
+Checkpoint: 40e22a2 (pre-abangque-glass). See [REDESIGN.md](REDESIGN.md) for
+verification scope and remaining physical-phone acceptance. Backend/schema and
+device hardware are outside this change.
 
 ## 11. Next passenger-app acceptance criteria
 
-For a separately authorized implementation phase:
+Implementation and physical acceptance criteria:
 
 1. User-facing identity consistently reads AbangQue; established internal
    identifiers and backend contracts keep working.
@@ -328,14 +331,12 @@ For a separately authorized implementation phase:
 6. Relevant Flutter/backend checks pass; report which runtime tests were
    actually performed and which were not.
 
-These are acceptance criteria, not authorization to start new modules now.
+These criteria do not authorize new modules or deployment.
 
 ## 12. Clarifications to resolve at the relevant phase
 
-- Passenger language: English, Filipino, or both? Which status explanations need
-  localization while retaining the backend FULL/AVAILABLE values?
-- Offline demo ETA: retain clearly labeled illustrative estimates, or show
-  unavailable in both modes until ETA is implemented?
+- Confirmed: English now; Filipino localization may be added later.
+- Confirmed: ETA unavailable in both modes until a suitable calculation is implemented.
 - Future ETA destination: verified terminal, stop or another destination model?
   Obtain approved route/terminal data before algorithm or journey-flow design.
 - Field communication policy: desired device update interval and approved stale
@@ -347,10 +348,9 @@ The branding, ban on numerical seat counts, manual status semantics, physical
 phone workflow and current passenger-app priority are already clear. They do not
 need to be reconfirmed.
 
-## 13. Scope of this documentation task
+## 13. Scope history
 
-Only docs/PROJECT_BRIEF.md and root AGENTS.md are created. No application source,
-backend code, configuration, migrations, database contents or dependencies are
-changed. No services are started, packages installed, tests rerun, or deployment
-performed. Existing conflicting docs are identified rather than silently rewritten.
-
+The initial project-context task created only this brief and AGENTS.md.
+The subsequent authorized passenger redesign updates Flutter UI/model/demo code,
+tests, platform display labels and relevant documentation. Backend/database schema,
+hardware firmware, admin dashboard and deployment remain outside scope.

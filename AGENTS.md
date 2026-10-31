@@ -32,8 +32,9 @@ permission to implement every module.
 - Distinguish last reported coordinates, measurement time, last communication,
   stale reports and connection failures. Do not claim continuous tracking from
   polling or successful hardware operation from accepted database records.
-- API eta=null means **ETA unavailable**. Do not invent API ETAs. A future
-  calculation requires an agreed, documented, testable method.
+- Show **ETA unavailable in API and offline DEMO modes** until a suitable
+  calculation is explicitly approved and implemented. Never invent estimates.
+- Use English for the passenger interface; Filipino localization is future work.
 - Label all simulations/seeded data DEMO. Keep API and offline simulator modes
   separately selectable; never silently substitute simulation after API errors.
 - Do not invent official routes, stops, schedules, fares, drivers or cooperative

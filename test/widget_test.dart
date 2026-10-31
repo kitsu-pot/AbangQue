@@ -38,18 +38,16 @@ Future<void> tab(WidgetTester tester, String name) async {
 }
 
 void main() {
-  testWidgets('home identifies the demo and refresh changes the sample ETA', (
-    tester,
-  ) async {
+  testWidgets('home labels demo and refresh never invents ETA', (tester) async {
     await startApp(tester);
-    expect(find.text('Tara, sakay na.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('hero-title')), findsOneWidget);
     expect(find.text('DEMO'), findsWidgets);
-    expect(find.text('4 min'), findsWidgets);
+    expect(find.text('ETA unavailable'), findsWidgets);
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
     await tester.tap(find.byTooltip('Refresh demo'));
     await tester.pumpAndSettle();
-    expect(find.text('5 min'), findsWidgets);
+    expect(find.text('ETA unavailable'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -70,11 +68,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('vehicle-DEMO-02')));
     await tester.pumpAndSettle();
     expect(find.text('Demo jeepney 02'), findsOneWidget);
-    expect(find.text('0 of 18 seats open'), findsOneWidget);
+    expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
     expect(find.text('No official route assigned'), findsOneWidget);
     expect(find.text('FULL'), findsWidgets);
-    await tester.ensureVisible(find.text('View on demo map'));
-    await tester.tap(find.text('View on demo map'));
+    await tester.ensureVisible(find.text('View last location on map'));
+    await tester.tap(find.text('View last location on map'));
     await tester.pumpAndSettle();
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.byKey(const ValueKey('marker-DEMO-02')), findsOneWidget);
@@ -90,17 +88,23 @@ void main() {
   ) async {
     await startApp(tester);
     await tab(tester, 'Map');
+    await tester.ensureVisible(find.byKey(const ValueKey('marker-DEMO-01')));
     await tester.tap(find.byKey(const ValueKey('marker-DEMO-01')));
     await tester.pumpAndSettle();
-    expect(find.text('Demo jeepney 01'), findsOneWidget);
-    expect(find.text('8 of 18 seats open'), findsOneWidget);
+    expect(find.byKey(const ValueKey('selected-jeepney')), findsOneWidget);
+    await tester.ensureVisible(find.text('View report details'));
+    await tester.tap(find.text('View report details'));
+    await tester.pumpAndSettle();
+    expect(find.text('Demo jeepney 01'), findsWidgets);
+    expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
     await tester.tap(find.byTooltip('Close details'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Zoom in'));
     await tester.tap(find.byTooltip('Zoom in'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Zoom out'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Reset to demo area'));
+    await tester.tap(find.byTooltip('Reset to Boac area'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
@@ -111,16 +115,13 @@ void main() {
     await startApp(tester);
     await tab(tester, 'Guide');
     await tester.ensureVisible(
-      find.text('Is JeepLink tracking real jeepneys?'),
+      find.text('Is AbangQue tracking real jeepneys?'),
     );
-    await tester.tap(find.text('Is JeepLink tracking real jeepneys?'));
+    await tester.tap(find.text('Is AbangQue tracking real jeepneys?'));
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('Real GPS hardware and a backend are not connected.'),
-      findsOneWidget,
-    );
-    await tester.ensureVisible(find.text('Try the demo map'));
-    await tester.tap(find.text('Try the demo map'));
+    expect(find.textContaining('It is not real GPS tracking.'), findsOneWidget);
+    await tester.ensureVisible(find.text('Explore the map'));
+    await tester.tap(find.text('Explore the map'));
     await tester.pumpAndSettle();
     expect(find.byType(FlutterMap), findsOneWidget);
   });
@@ -148,11 +149,11 @@ void main() {
     expect(repository.disposed, isTrue);
   });
 
-  for (final scale in [1.0, 1.8]) {
+  for (final scale in [1.0, 1.8, 2.0]) {
     testWidgets('small phone layout supports navigation at text scale $scale', (
       tester,
     ) async {
-      await startApp(tester, size: const Size(360, 800), textScale: scale);
+      await startApp(tester, size: const Size(320, 800), textScale: scale);
       expect(tester.takeException(), isNull);
       for (final name in ['Jeepneys', 'Map', 'Guide', 'Home']) {
         await tab(tester, name);

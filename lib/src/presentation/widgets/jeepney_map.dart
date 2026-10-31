@@ -9,6 +9,7 @@ import '../../config/map_config.dart';
 import '../../data/demo_jeepney_repository.dart';
 import '../../domain/jeepney.dart';
 import '../../theme.dart';
+import 'glass.dart';
 
 typedef TileProviderFactory = TileProvider Function();
 
@@ -94,7 +95,7 @@ class _JeepneyMapState extends State<JeepneyMap> {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(18),
+    borderRadius: BorderRadius.circular(22),
     child: Stack(
       children: [
         FlutterMap(
@@ -126,30 +127,6 @@ class _JeepneyMapState extends State<JeepneyMap> {
             ),
             MarkerLayer(
               markers: [
-                if (!DataModeScope.isApi(context))
-                  Marker(
-                    point: _latLng(DemoScenario.referencePoint),
-                    width: 40,
-                    height: 40,
-                    child: Tooltip(
-                      message: 'DEMO sample pickup point. Not your location or an official stop.',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: JeepLinkColors.green,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.person_pin_circle_rounded,
-                          color: JeepLinkColors.green,
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                  ),
                 for (final jeepney in widget.jeepneys.where(
                   (v) => v.position != null,
                 ))
@@ -210,19 +187,20 @@ class _JeepneyMapState extends State<JeepneyMap> {
         Positioned(
           top: 12,
           left: 12,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Text(
-              modeText(context, 'DEMO LOCATIONS', 'LAST REPORTED LOCATIONS'),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: .8,
-                color: JeepLinkColors.ink,
+          right: 12,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: GlassPanel(
+              radius: 12,
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              child: Text(
+                modeText(context, 'DEMO LOCATIONS', 'LAST REPORTED LOCATIONS'),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .8,
+                  color: JeepLinkColors.ink,
+                ),
               ),
             ),
           ),
@@ -280,7 +258,7 @@ class _JeepneyMapState extends State<JeepneyMap> {
                 const SizedBox(height: 6),
                 _mapButton(
                   Icons.center_focus_strong_rounded,
-                  'Reset to demo area',
+                  'Reset to Boac area',
                   () => _controller.move(_latLng(DemoScenario.center), 14.8),
                 ),
               ],
@@ -316,14 +294,5 @@ class _JeepneyMapState extends State<JeepneyMap> {
   );
 
   Widget _mapButton(IconData icon, String label, VoidCallback onPressed) =>
-      Material(
-        color: Colors.white,
-        elevation: 1,
-        borderRadius: BorderRadius.circular(12),
-        child: IconButton(
-          onPressed: onPressed,
-          tooltip: label,
-          icon: Icon(icon, color: JeepLinkColors.ink),
-        ),
-      );
+      GlassIconButton(icon: icon, label: label, onPressed: onPressed);
 }

@@ -6,8 +6,6 @@ import '../domain/jeepney_repository.dart';
 /// Fictional points near Boac. These are NOT stops or official routes.
 abstract final class DemoScenario {
   static const center = GeoPoint(13.4463, 121.8398);
-  static const referencePoint = GeoPoint(13.4455, 121.8390);
-  static const referenceLabel = 'Sample pickup point';
 
   static List<Jeepney> vehicles(int step, DateTime recordedAt) {
     final alternate = step.isOdd;
@@ -16,9 +14,7 @@ abstract final class DemoScenario {
         id: 'DEMO-01',
         name: 'Demo jeepney 01',
         position: GeoPoint(13.4490 + (alternate ? .0003 : 0), 121.8374),
-        passengerCount: alternate ? 12 : 10,
-        capacity: 18,
-        eta: Duration(minutes: alternate ? 5 : 4),
+        reportedStatus: OccupancyStatus.available,
         recordedAt: recordedAt,
         source: DataSource.demo,
       ),
@@ -26,9 +22,7 @@ abstract final class DemoScenario {
         id: 'DEMO-02',
         name: 'Demo jeepney 02',
         position: GeoPoint(13.4433, 121.8423 + (alternate ? .0003 : 0)),
-        passengerCount: 18,
-        capacity: 18,
-        eta: const Duration(minutes: 7),
+        reportedStatus: OccupancyStatus.full,
         recordedAt: recordedAt,
         source: DataSource.demo,
       ),
@@ -36,9 +30,7 @@ abstract final class DemoScenario {
         id: 'DEMO-03',
         name: 'Demo jeepney 03',
         position: GeoPoint(13.4512, 121.8445 - (alternate ? .0003 : 0)),
-        passengerCount: alternate ? 13 : 14,
-        capacity: 20,
-        eta: Duration(minutes: alternate ? 10 : 11),
+        reportedStatus: OccupancyStatus.available,
         recordedAt: recordedAt,
         source: DataSource.demo,
       ),

@@ -89,7 +89,7 @@ void main() {
       final v = parseApiJeepney(record('DEMO-01'));
       expect(v.status, OccupancyStatus.unknown);
       expect(v.statusLabel, 'STALE / UNKNOWN');
-      expect(v.availableSeats, isNull);
+      expect(v.hasFreshReport, isFalse);
       expect(v.eta, isNull);
       expect(v.fromApi, isTrue);
       expect(
@@ -109,6 +109,12 @@ void main() {
         'status': 'FULL',
       };
       expect(parseApiJeepney(hardware).status, OccupancyStatus.full);
+      expect(parseApiJeepney(hardware).hasFreshReport, isTrue);
+      expect(parseApiJeepney({...hardware, 'eta': 240}).eta, isNull);
+      expect(
+        parseApiJeepney({...hardware, 'isStale': true}).hasFreshReport,
+        isFalse,
+      );
       expect(
         parseApiJeepney({...hardware, 'status': null}).status,
         OccupancyStatus.unknown,
@@ -281,16 +287,16 @@ void main() {
       expect(find.text('2 API jeepneys'), findsOneWidget);
       expect(find.text('Available (0)'), findsOneWidget);
       expect(find.text('STALE / UNKNOWN'), findsNWidgets(2));
-      expect(find.text('Unavailable'), findsNWidgets(2));
+      expect(find.text('ETA unavailable'), findsNWidgets(2));
       expect(find.byKey(const ValueKey('vehicle-DEMO-03')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('vehicle-DEMO-01')));
       await tester.pumpAndSettle();
-      expect(find.text('Seat count unknown'), findsWidgets);
+      expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
       expect(
-        find.textContaining('ETA unavailable. The backend'),
+        find.textContaining('Arrival estimates are not implemented.'),
         findsOneWidget,
       );
-      expect(find.textContaining('Measured: 2026-01-01'), findsOneWidget);
+      expect(find.textContaining('1 Jan 2026'), findsNWidgets(2));
       await tester.tap(find.byTooltip('Close details'));
       await tester.pumpAndSettle();
       fail = true;

@@ -1,4 +1,5 @@
-/// Domain types have no Flutter, map, or transport dependencies.
+/// Domain types have no UI or transport dependencies.
+/// FULL/AVAILABLE is a manually reported state, never a passenger count.
 enum OccupancyStatus { available, full, unknown }
 
 enum DataSource { demo, hardware }
@@ -16,9 +17,6 @@ class Jeepney {
     required this.id,
     required this.name,
     required this.position,
-    required this.passengerCount,
-    required this.capacity,
-    required this.eta,
     required this.recordedAt,
     required this.source,
     this.fromApi = false,
@@ -26,19 +24,10 @@ class Jeepney {
     this.lastSeenAt,
     this.connectionStatus,
     this.reportedStatus,
-  }) : assert(capacity == null || capacity > 0),
-       assert(
-         passengerCount == null ||
-             (passengerCount >= 0 &&
-                 capacity != null &&
-                 passengerCount <= capacity),
-       );
+  });
   final String id;
   final String name;
   final GeoPoint? position;
-  final int? passengerCount;
-  final int? capacity;
-  final Duration? eta;
   final DateTime? recordedAt;
   final DateTime? lastSeenAt;
   final DataSource source;
@@ -46,19 +35,22 @@ class Jeepney {
   final bool isStale;
   final String? connectionStatus;
   final OccupancyStatus? reportedStatus;
-  int? get availableSeats =>
-      capacity == null || passengerCount == null || isStale
-      ? null
-      : capacity! - passengerCount!;
+
+  /// ETA remains unavailable in every mode until an agreed algorithm exists.
+  Duration? get eta => null;
+  bool get hasFreshReport =>
+      fromApi &&
+      source == DataSource.hardware &&
+      !isStale &&
+      recordedAt != null &&
+      lastSeenAt != null &&
+      connectionStatus == 'ONLINE';
   OccupancyStatus get status {
-    if (isStale || (fromApi && source == DataSource.demo)) {
+    if (isStale ||
+        (fromApi && (source == DataSource.demo || !hasFreshReport))) {
       return OccupancyStatus.unknown;
     }
-    if (fromApi) return reportedStatus ?? OccupancyStatus.unknown;
-    if (availableSeats == null) return OccupancyStatus.unknown;
-    return availableSeats == 0
-        ? OccupancyStatus.full
-        : OccupancyStatus.available;
+    return reportedStatus ?? OccupancyStatus.unknown;
   }
 
   String get statusLabel =>
@@ -66,6 +58,15 @@ class Jeepney {
   String get sourceLabel => fromApi
       ? (source == DataSource.demo
             ? 'API · Historical DEMO'
-            : 'API · Device record')
-      : 'Simulated jeepney';
+            : 'API · Driver report')
+      : 'DEMO · Offline simulation';
+  String get freshnessLabel => !fromApi
+      ? 'Simulated report'
+      : source == DataSource.demo
+      ? 'Historical demo'
+      : recordedAt == null
+      ? 'No report yet'
+      : hasFreshReport
+      ? 'Fresh report'
+      : 'Report outdated';
 }

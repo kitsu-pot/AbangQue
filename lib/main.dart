@@ -24,7 +24,7 @@ void main() {
           body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('JeepLink configuration error: ${error.message}'),
+              child: Text('AbangQue configuration error: ${error.message}'),
             ),
           ),
         ),

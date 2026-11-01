@@ -376,3 +376,19 @@ search, cards/details and map markers. Test-only records exercise those paths.
 No such routes are shipped in the passenger app. Backend/admin registration,
 persistence, validation, route reads and assignment management remain future work.
 See [ROUTE_SELECTION.md](ROUTE_SELECTION.md) for implementation and verification.
+
+## 15. Passenger authentication (2026-11-01)
+
+The authorized passenger-account phase adds Argon2id password hashes, email/name
+registration, login, PASSENGER-only authorization, expiring opaque sessions,
+server-side logout and profile name editing. Additive migration 002 was applied
+to local PostgreSQL. The real API/database tests run in isolated temporary schemas.
+Transport endpoints stay public; Continue as Guest preserves route/map access.
+No routes, GPS claims, ETA, admin permissions or device credentials are introduced.
+
+Flutter uses origin-scoped secure device storage, server-verified session recovery,
+an explicit pending-logout marker for offline revocation, and the existing glass
+components. Offline DEMO is guest-only. Email changes, verification and password
+reset are not implemented. Physical phone/keychain behavior still needs device
+verification. See [AUTHENTICATION.md](AUTHENTICATION.md) for architecture, migration,
+environment settings, security limits and exact launch/verification steps.

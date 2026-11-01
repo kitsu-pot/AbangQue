@@ -1,13 +1,15 @@
 import express from 'express';
+import { passengerAuthRouter } from './passenger-auth.js';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { parseToken, matchesSecret } from './security.js';
 import { jeepneyId, updateSchema, timestampAllowed } from './validation.js';
 import { presentJeepney } from './presenter.js';
 
-export function createApp({ repository, config, clock = Date.now }) {
+export function createApp({ repository, passengerRepository, config, clock = Date.now }) {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', config.TRUST_PROXY === 'loopback' ? 'loopback' : false);
   app.use(helmet());
   app.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.get('/health', async (_req, res) => {
@@ -18,6 +20,7 @@ export function createApp({ repository, config, clock = Date.now }) {
       res.status(503).json({ status: 'unavailable', database: 'unreachable' });
     }
   });
+  if (passengerRepository) app.use('/api/auth', passengerAuthRouter({ repository: passengerRepository, config }));
   const includeDemo = config.INCLUDE_DEMO === 'true';
   app.get('/api/jeepneys', async (_req, res) => {
     const now = clock();

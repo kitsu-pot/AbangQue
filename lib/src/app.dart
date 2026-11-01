@@ -1,4 +1,6 @@
 import 'config/data_config.dart';
+import 'auth/auth_controller.dart';
+import 'auth/auth_screens.dart';
 
 import 'dart:async';
 
@@ -26,9 +28,11 @@ class JeepLinkApp extends StatefulWidget {
     this.mapConfig = const MapConfig(),
     this.tileProviderFactory,
     this.apiMode = false,
+    this.authController,
     this.routeRepository = const UnconfiguredRouteRepository(),
   });
   final JeepneyRepository repository;
+  final AuthController? authController;
   final RouteRepository routeRepository;
   final bool apiMode;
   final MapConfig mapConfig;
@@ -48,6 +52,7 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
   @override
   void dispose() {
     _controller.dispose();
+    widget.authController?.dispose();
     unawaited(widget.repository.dispose());
     super.dispose();
   }
@@ -59,12 +64,16 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
       title: widget.apiMode ? 'AbangQue · API' : 'AbangQue · Offline demo',
       debugShowCheckedModeBanner: false,
       theme: JeepLinkColors.theme,
-      home: _PassengerShell(
-        controller: _controller,
-        mapConfig: widget.mapConfig,
-        tileProviderFactory: widget.tileProviderFactory,
-      ),
+      home: widget.authController == null
+          ? _shell()
+          : AuthGate(controller: widget.authController!, child: _shell()),
     ),
+  );
+  Widget _shell() => _PassengerShell(
+    controller: _controller,
+    mapConfig: widget.mapConfig,
+    tileProviderFactory: widget.tileProviderFactory,
+    authController: widget.authController,
   );
 }
 
@@ -73,7 +82,9 @@ class _PassengerShell extends StatefulWidget {
     required this.controller,
     required this.mapConfig,
     this.tileProviderFactory,
+    this.authController,
   });
+  final AuthController? authController;
   final JeepneyController controller;
   final MapConfig mapConfig;
   final TileProviderFactory? tileProviderFactory;
@@ -166,6 +177,19 @@ class _PassengerShellState extends State<_PassengerShell> {
             ],
           ),
           actions: [
+            if (widget.authController != null)
+              IconButton(
+                tooltip: 'Passenger profile',
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PassengerProfileScreen(
+                      controller: widget.authController!,
+                    ),
+                  ),
+                ),
+              ),
+
             IconButton(
               tooltip: modeText(context, 'Refresh demo', 'Refresh API'),
               onPressed: widget.controller.refreshing

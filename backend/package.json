@@ -13,17 +13,18 @@
     "check": "node scripts/check.js",
     "migrate": "node --env-file=.env scripts/migrate.js",
     "seed:demo": "node --env-file=.env scripts/seed-demo.js",
-    "device:create": "node --env-file=.env scripts/create-device.js"
+    "device:create": "node --env-file=.env scripts/create-device.js",
+    "test:postgres": "node --env-file=.env scripts/pg-integration.js"
   },
   "dependencies": {
+    "argon2": "^0.44.0",
     "express": "^5.1.0",
-    "pg": "^8.16.3",
-    "zod": "^4.1.12",
+    "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
-    "express-rate-limit": "^8.2.1"
+    "pg": "^8.16.3",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "supertest": "^7.1.4"
   }
 }
-

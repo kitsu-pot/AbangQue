@@ -253,3 +253,13 @@ and live end-to-end Flutter verification are not completed by database-free chec
 References: [Express error handling](https://expressjs.com/en/5x/guide/error-handling/),
 [node-postgres parameterized queries](https://node-postgres.com/features/queries).
 
+
+## Passenger accounts (2026-11-01)
+
+Migration 002_passenger_auth.sql adds passenger-only accounts and expiring,
+revocable sessions. Run npm ci and npm run migrate, then restart the backend.
+New auth settings and all endpoints are documented in
+[AUTHENTICATION.md](../docs/AUTHENTICATION.md). Public jeepney GETs stay unauthenticated.
+The real PostgreSQL suite is npm run test:postgres (isolated temporary schema).
+Default npm test stays database-free and skips that explicit integration suite.
+No account credentials are seeded. No admin login or password reset is implemented.

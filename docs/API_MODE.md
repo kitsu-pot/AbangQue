@@ -4,6 +4,10 @@ The old startup always used DemoJeepneyRepository. The default startup now uses
 ApiJeepneyRepository and shows an **API** badge on Home. All four screens use the AbangQue glass
 design. DATA_MODE=demo explicitly selects the separate offline simulator.
 
+The app now opens passenger sign-in/registration with **Continue as Guest**.
+Transport reads still work as a guest. Accounts require the new passenger migration;
+see [authentication setup](AUTHENTICATION.md). Offline DEMO has no fake login.
+
 ## Start and verify the backend first
 
 From the project root, in PowerShell:
@@ -124,7 +128,7 @@ with the desired defines; hot reload does not change compile-time configuration.
 See [journey-selection architecture](ROUTE_SELECTION.md) for the route-service
 boundary and remaining backend/admin work.
 
-API mode only performs GET /api/jeepneys. It sends no Authorization header and
+The vehicle repository only performs GET /api/jeepneys. It sends no Authorization header and
 stores no device credentials. Passenger counts/capacity are absent from the app;
 ETA is always unavailable pending an explicitly approved calculation. Even non-stale API demo
 records never count as current availability.

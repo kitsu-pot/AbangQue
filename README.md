@@ -4,6 +4,11 @@ A Material 3 Flutter passenger application for Marinduque, Philippines, with an
 original emerald/mint/cream Liquid Glass-inspired interface. English is the
 current interface language. The existing internal package name remains jeeplink.
 
+Passenger login, registration, persistent secure sessions, profile editing and
+server-revoked logout are implemented. **Continue as Guest** keeps transportation
+information public. Offline DEMO remains guest-only. See
+[authentication setup and security](docs/AUTHENTICATION.md) before running accounts.
+
 ## Run and verify
 
 Developed with Flutter 3.47.5 / Dart 3.13.4. From this project directory:

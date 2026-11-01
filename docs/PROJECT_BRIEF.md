@@ -55,8 +55,9 @@ communication, and unavailable information.
 
 Retain Home, Map, Jeepneys, and Guide navigation. The passenger app should:
 
-- Show registered jeepneys and clearly distinguish those currently reporting
-  from offline/stale records.
+- Start with From/To municipality selection. Display only jeepneys explicitly
+  assigned to the selected administrator-registered route direction; never the
+  whole fleet by default. Clearly distinguish fresh from offline/stale reports.
 - Display last reported OSM positions and their age; do not imply an old marker
   is a current GPS fix.
 - Show manually reported FULL or AVAILABLE only when valid and sufficiently
@@ -354,3 +355,24 @@ The initial project-context task created only this brief and AGENTS.md.
 The subsequent authorized passenger redesign updates Flutter UI/model/demo code,
 tests, platform display labels and relevant documentation. Backend/database schema,
 hardware firmware, admin dashboard and deployment remain outside scope.
+
+## 14. Journey-first passenger flow (2026-10-31)
+
+The passenger app now starts with From/To municipality selection, swap and Find
+Jeepneys. The six municipality names are choices, not evidence of operating
+routes. Reverse directions are independent. Global All/Available filters and
+global fleet cards/statistics are removed.
+
+Inspected backend routes, presenter and initial migration contain no registered
+route records or jeepney-route assignments. The Flutter RouteRepository boundary
+therefore returns an empty catalog in API and DEMO modes. It does not call an
+invented endpoint or assign existing demo records. API connectivity remains via
+the existing vehicle GET endpoint; all unassigned vehicles stay out of results
+and markers. No schema, seed, database contents or backend code was changed.
+
+Future injected catalogs support route IDs, municipality endpoints and explicit
+vehicle assignments, selection among multiple routes in one direction, scoped
+search, cards/details and map markers. Test-only records exercise those paths.
+No such routes are shipped in the passenger app. Backend/admin registration,
+persistence, validation, route reads and assignment management remain future work.
+See [ROUTE_SELECTION.md](ROUTE_SELECTION.md) for implementation and verification.

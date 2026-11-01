@@ -9,6 +9,7 @@ import '../jeepney_controller.dart';
 import '../widgets/common.dart';
 import '../widgets/glass.dart';
 import '../widgets/jeepney_map.dart';
+import '../widgets/journey_selector.dart';
 
 class FleetScreen extends StatefulWidget {
   const FleetScreen({
@@ -50,7 +51,7 @@ class _FleetScreenState extends State<FleetScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          showMap ? 'Find your bearings.' : 'Your next journey.',
+          showMap ? 'Find your bearings.' : 'Jeepneys for your journey.',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: 7),
@@ -59,47 +60,47 @@ class _FleetScreenState extends State<FleetScreen> {
             context,
             showMap
                 ? 'Boac, Marinduque · Explore the demo area'
-                : 'Browse the simulated AbangQue fleet.',
-            'API records · Check status and freshness',
+                : 'DEMO route-selection preview · No assigned jeepneys.',
+            'Choose a registered direction to view assigned jeepneys.',
           ),
           style: const TextStyle(color: JeepLinkColors.muted),
         ),
         const SizedBox(height: 20),
         const DemoNotice(),
         const SizedBox(height: 18),
-        TextFormField(
-          key: ValueKey('fleet-search-$showMap'),
-          initialValue: controller.query,
-          onChanged: controller.setQuery,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: modeText(
-              context,
-              'Search demo jeepney ID',
-              'Search jeepney ID',
-            ),
-            labelText: 'Search jeepneys',
+        if (!controller.journeySubmitted)
+          JourneySelector(controller: controller)
+        else ...[
+          Text(
+            '${controller.origin!.label} → ${controller.destination!.label}',
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: Text('All jeepneys (${controller.vehicles.length})'),
-              selected: !controller.availableOnly,
-              onSelected: (_) => controller.setAvailableOnly(false),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: controller.editJourney,
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Change journey'),
+          ),
+        ],
+        const SizedBox(height: 18),
+        JourneyState(controller: controller),
+        const SizedBox(height: 18),
+        if (controller.selectedRoute != null) ...[
+          TextFormField(
+            key: ValueKey(
+              'fleet-search-$showMap-${controller.selectedRoute!.id}',
             ),
-            ChoiceChip(
-              label: Text('Available (${controller.availableCount})'),
-              selected: controller.availableOnly,
-              onSelected: (_) => controller.setAvailableOnly(true),
+            initialValue: controller.query,
+            onChanged: controller.setQuery,
+            textInputAction: TextInputAction.search,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              labelText: 'Search this route',
+              hintText: 'Jeepney ID or name',
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (showMap) ...[
           GlassPanel(
             padding: const EdgeInsets.all(6),
@@ -108,7 +109,7 @@ class _FleetScreenState extends State<FleetScreen> {
               child: JeepneyMap(
                 jeepneys: vehicles,
                 onSelect: (v) => setState(() => _selectedId = v.id),
-                focus: focus,
+                focus: vehicles.any((v) => v.id == focus?.id) ? focus : null,
                 config: mapConfig,
                 tileProviderFactory: tileProviderFactory,
               ),
@@ -172,35 +173,42 @@ class _FleetScreenState extends State<FleetScreen> {
           ],
           const SizedBox(height: 22),
         ],
-        Text(
-          '${vehicles.length} ${DataModeScope.isApi(context) ? 'API' : 'demo'} ${vehicles.length == 1 ? 'jeepney' : 'jeepneys'}',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 12),
-        if (vehicles.isEmpty)
-          const EmptyState(
-            title: 'No matching jeepneys',
-            message: 'Try another ID or choose All jeepneys.',
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) => Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final vehicle in vehicles)
-                  SizedBox(
-                    width: constraints.maxWidth > 760
-                        ? (constraints.maxWidth - 24) / 3
-                        : constraints.maxWidth,
-                    child: JeepneyCard(
-                      jeepney: vehicle,
-                      onTap: () => onSelect(vehicle),
-                    ),
-                  ),
-              ],
-            ),
+        if (controller.selectedRoute != null) ...[
+          Text(
+            '${vehicles.length} jeepneys on this route',
+            style: Theme.of(context).textTheme.titleLarge,
           ),
+          const SizedBox(height: 12),
+          if (vehicles.isEmpty)
+            EmptyState(
+              title: controller.query.trim().isEmpty
+                  ? 'No jeepney reports for this route yet'
+                  : 'No matching jeepneys',
+              message: controller.query.trim().isEmpty
+                  ? 'No assigned jeepney reports are available. Try refreshing later.'
+                  : 'Try another ID or name within your selected route.',
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final vehicle in vehicles)
+                    SizedBox(
+                      width: constraints.maxWidth > 760
+                          ? (constraints.maxWidth - 24) / 3
+                          : constraints.maxWidth,
+                      child: JeepneyCard(
+                        jeepney: vehicle,
+                        routeLabel: controller.selectedRoute!.label,
+                        onTap: () => onSelect(vehicle),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }

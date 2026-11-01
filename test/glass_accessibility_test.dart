@@ -10,7 +10,7 @@ import 'package:jeeplink/src/data/demo_jeepney_repository.dart';
 import 'package:jeeplink/src/presentation/widgets/glass.dart';
 
 import 'fakes.dart';
-import 'widget_test.dart' show startApp, tab;
+import 'widget_test.dart' show startApp, tab, chooseJourney;
 
 void main() {
   testWidgets('large text details, keyboard, insets and reduced motion', (
@@ -24,13 +24,18 @@ void main() {
       tester.view.resetPadding();
       tester.view.resetViewInsets();
     });
-    await startApp(tester, size: const Size(320, 800), textScale: 2);
+    await startApp(
+      tester,
+      size: const Size(320, 800),
+      textScale: 2,
+      withRoutes: true,
+    );
     expect(find.byType(BackdropFilter), findsNothing);
     final hero = tester.renderObject<RenderParagraph>(
       find.byKey(const ValueKey('hero-title')),
     );
     expect(hero.didExceedMaxLines, isFalse);
-    await tab(tester, 'Jeepneys');
+    await chooseJourney(tester);
     await tester.ensureVisible(find.byType(TextFormField));
     await tester.tap(find.byType(TextFormField));
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
@@ -40,8 +45,12 @@ void main() {
     tester.view.resetViewInsets();
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('vehicle-DEMO-02')));
-    await tester.tap(find.byKey(const ValueKey('vehicle-DEMO-02')));
+    final cardTitle = find.descendant(
+      of: find.byKey(const ValueKey('vehicle-DEMO-02')),
+      matching: find.text('DEMO-02'),
+    );
+    await tester.ensureVisible(cardTitle);
+    await tester.tap(cardTitle);
     await tester.pumpAndSettle();
     expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
     await tester.ensureVisible(find.text('View last location on map'));

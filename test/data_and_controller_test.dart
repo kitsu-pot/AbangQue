@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jeeplink/src/data/demo_jeepney_repository.dart';
 import 'package:jeeplink/src/domain/jeepney.dart';
+import 'package:jeeplink/src/domain/passenger_route.dart';
 import 'package:jeeplink/src/presentation/jeepney_controller.dart';
 
 import 'fakes.dart';
@@ -57,19 +58,23 @@ void main() {
   );
 
   test(
-    'controller combines search and availability and handles errors',
+    'controller scopes search to a selected route and handles errors',
     () async {
       final repository = TestRepository();
-      final controller = JeepneyController(repository);
+      final controller = JeepneyController(
+        repository,
+        routeRepository: TestRouteRepository(),
+      );
       expect(controller.loading, isTrue);
       repository.updates.add(DemoScenario.vehicles(0, DateTime.utc(2026)));
       await flushEvents();
       expect(controller.loading, isFalse);
-      expect(controller.availableCount, 2);
+      expect(controller.filteredVehicles, isEmpty);
+      controller.setOrigin(Municipality.boac);
+      controller.setDestination(Municipality.gasan);
+      controller.findJeepneys();
       controller.setQuery('  demo-02  ');
       expect(controller.filteredVehicles.single.status, OccupancyStatus.full);
-      controller.setAvailableOnly(true);
-      expect(controller.filteredVehicles, isEmpty);
       controller.setQuery('');
       expect(controller.filteredVehicles, hasLength(2));
       repository.updates.addError(StateError('Disconnected'));

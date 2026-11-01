@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'config/map_config.dart';
 import 'domain/jeepney.dart';
 import 'domain/jeepney_repository.dart';
+import 'domain/passenger_route.dart';
 import 'presentation/jeepney_controller.dart';
 import 'presentation/screens/fleet_screen.dart';
 import 'presentation/screens/guide_screen.dart';
@@ -25,8 +26,10 @@ class JeepLinkApp extends StatefulWidget {
     this.mapConfig = const MapConfig(),
     this.tileProviderFactory,
     this.apiMode = false,
+    this.routeRepository = const UnconfiguredRouteRepository(),
   });
   final JeepneyRepository repository;
+  final RouteRepository routeRepository;
   final bool apiMode;
   final MapConfig mapConfig;
   final TileProviderFactory? tileProviderFactory;
@@ -39,6 +42,7 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
   late final _controller = JeepneyController(
     widget.repository,
     apiMode: widget.apiMode,
+    routeRepository: widget.routeRepository,
   );
 
   @override
@@ -94,7 +98,6 @@ class _PassengerShellState extends State<_PassengerShell> {
 
   void _showDetails(Jeepney jeepney) =>
       showJeepneyDetails(context, jeepney, (selected) {
-        widget.controller.setAvailableOnly(false);
         widget.controller.setQuery('');
         setState(() {
           _tab = 1;
@@ -217,9 +220,8 @@ class _PassengerShellState extends State<_PassengerShell> {
                               semanticsLabel: 'Loading jeepneys',
                             ),
                           ),
-                        )
-                      else
-                        SoftEntrance(key: ValueKey(_tab), child: _page()),
+                        ),
+                      SoftEntrance(key: ValueKey(_tab), child: _page()),
                     ],
                   ),
                 ),
@@ -269,14 +271,7 @@ class _PassengerShellState extends State<_PassengerShell> {
   );
 
   Widget _page() => switch (_tab) {
-    0 => HomeScreen(
-      controller: widget.controller,
-      onMap: () => _selectTab(1),
-      onJeepneys: () => _selectTab(2),
-      onSelect: _showDetails,
-      mapConfig: widget.mapConfig,
-      tileProviderFactory: widget.tileProviderFactory,
-    ),
+    0 => HomeScreen(controller: widget.controller, onFind: () => _selectTab(2)),
     1 || 2 => FleetScreen(
       key: ValueKey('fleet-$_tab-$_mapSelection'),
       controller: widget.controller,

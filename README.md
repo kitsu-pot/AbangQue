@@ -26,15 +26,20 @@ No device/database credentials belong in Flutter or dart-define.
 
 ## Passenger experience
 
-- Home: responsive hero, vehicle totals, fresh-device-report total, OSM preview,
-  source-labeled jeepney cards.
-- Map: last-reported markers, glass zoom/reset controls, selected-jeepney panel,
-  linked OSM attribution, tile-error notice and retry.
-- Jeepneys: shared search and All/Available filters, report cards and empty states.
-- Details: manual status, report freshness, measurement and communication times,
-  last coordinates, unavailable ETA and a focus-on-map action.
-- Guide: English explanations of manual reports, data limitations and connectivity.
-- Floating glass navigation, pull-to-refresh, loading, error and retry states.
+- Home: municipality From/To selection, swap and Find Jeepneys as the main action.
+- Map and Jeepneys: shared journey selection; results require an explicit registered
+  route and assignments. Global All/Available filters are removed.
+- Current API and offline DEMO: **No registered routes available yet.** Existing
+  vehicle records are unassigned and hidden from route results and map markers.
+- Future assigned results: route-scoped ID/name search, report cards, details,
+  source/status labels, timestamps and last coordinates.
+- Guide: English explanations of direction-specific routes and manual reports.
+- Floating glass navigation, OpenStreetMap controls/attribution, pull-to-refresh,
+  loading, errors, retry, accessible layouts and reduced motion are preserved.
+
+Municipality choices are journey preferences, not operating routes. DEMO is a
+clearly labeled selector preview with no fictional assignments. See
+[route-selection architecture and current limits](docs/ROUTE_SELECTION.md).
 
 FULL/AVAILABLE is a **manually selected driver report**, not an automatic count
 or boarding guarantee. Numerical seat/occupancy fields and presentation have been
@@ -49,8 +54,9 @@ not the passenger's location; the app requests no location permission.
 API is the default, using only GET /api/jeepneys. It polls every 30 seconds and
 supports manual refresh with a 10-second request timeout. Freshness comes from
 the latest backend response. Failures clear API rows and offer retry; the app
-never silently substitutes demo records. Offline DEMO uses three fictional
-vehicles and explicit manual-status examples; refresh changes example coordinates.
+never silently substitutes demo records. Offline DEMO retains three fictional
+vehicles internally, but none are assigned to routes or exposed as passenger
+results. Refresh changes the underlying examples without inventing assignments.
 OpenStreetMap tiles still need connectivity in either mode.
 
 ## Implementation
@@ -59,7 +65,7 @@ Repository/controller/UI boundaries remain intact:
 
 - lib/src/config: compile-time data mode, secure API origin, map configuration.
 - lib/src/data: separate API and offline demo repositories.
-- lib/src/domain: immutable vehicle/status model and repository contract.
+- lib/src/domain: immutable vehicle/status and route/assignment models, repository contracts.
 - lib/src/presentation: controller, screens and reusable widgets.
 - lib/src/presentation/widgets/glass.dart: glass panels, backdrop, controls,
   short entrance animation and reduced-motion handling.
@@ -73,7 +79,8 @@ Reduced-motion settings disable that blur and the custom entrance animation.
 There are no new dependencies, looping effects or full-screen blur filters.
 Hero text and artwork use normal layout flow with no fixed-height text overlay.
 
-The pre-redesign working checkpoint is commit 40e22a2, tag pre-abangque-glass.
+The pre-route-selection checkpoint is a2b3d22; the earlier pre-redesign checkpoint
+is 40e22a2, tag pre-abangque-glass.
 Backend code/schema, application IDs and API contracts are preserved. Android
 debug-only local HTTP exceptions remain isolated; release/profile requires HTTPS.
 

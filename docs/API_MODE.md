@@ -95,27 +95,34 @@ flutter run -d windows --debug --dart-define=DATA_MODE=demo
 flutter run -d emulator-5554 --debug --dart-define=DATA_MODE=demo
 ```
 
-This mode displays **DEMO**, has three simulated vehicles and **ETA unavailable**,
-and requires no backend. OSM map tiles still require internet. There is no
+This mode displays **DEMO UI preview** and **ETA unavailable**, and requires no
+backend. Its simulator retains three unassigned vehicles internally; the passenger
+UI does not display them as route results or map markers. OSM map tiles still require internet. There is no
 automatic fallback from API to simulator. Change modes by stopping and relaunching
 with the desired defines; hot reload does not change compile-time configuration.
 
 ## Verify in Flutter
 
-1. API mode must show the API badge and **2 API jeepneys** on the Jeepneys tab
-   when the endpoint returns those two records. DEMO-03 must not appear.
-2. Each fixture shows **API · Historical DEMO**, **STALE / UNKNOWN**, and **ETA unavailable**. The Available filter count is zero.
-3. Details show last reported coordinates, measurement/last-seen UTC timestamps,
-   and unavailable ETA. Historical lastReportedStatus is never substituted for
-   current status. API mode does not invent a sample pickup marker.
-4. Tap refresh or pull down; reads are also polled every 30 seconds. Open details
-   follow the latest snapshot. Initial loading and manual refresh have progress
-   indicators.
+1. Home shows API mode, From/To municipality selectors, swap and Find Jeepneys.
+   The current backend has no route endpoint or assignments, so the app shows
+   **No registered routes available yet.** even if GET /api/jeepneys returns
+   two historical records. There are no global All/Available filters.
+2. Choose two different municipalities and tap Find Jeepneys. No route is
+   invented, no existing demo is assigned, and no fleet cards/markers appear.
+   Swapping or changing the selection clears earlier journey results.
+3. Map still renders OpenStreetMap geography and controls, with no unassigned
+   vehicle markers. No route lines, terminals or stops are inferred.
+4. Tap refresh or pull down. Vehicle reads still poll every 30 seconds; manual
+   refresh also reloads the route-catalog abstraction (currently empty).
 5. Stop the backend and refresh. After at most the 10-second request timeout,
-   an error and Try again appear. Old API rows are cleared; no simulator vehicles
-   or cached availability are substituted. Restart the backend and retry.
-6. A successful empty response shows an empty state. Null positions remain in
-   the list but have no map marker or enabled View location action.
+   an error and Try again appear. Restart and retry; no simulator substitutes.
+6. Future explicit route assignments will enable route-specific cards/details:
+   historical DEMO remains STALE / UNKNOWN, ETA remains unavailable, and null
+   positions have no marker. This future result path is exercised using injected
+   test-only catalogs, not fabricated production routes.
+
+See [journey-selection architecture](ROUTE_SELECTION.md) for the route-service
+boundary and remaining backend/admin work.
 
 API mode only performs GET /api/jeepneys. It sends no Authorization header and
 stores no device credentials. Passenger counts/capacity are absent from the app;

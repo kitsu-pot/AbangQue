@@ -181,8 +181,14 @@ String reportTime(DateTime? date) {
 }
 
 class JeepneyCard extends StatelessWidget {
-  const JeepneyCard({super.key, required this.jeepney, required this.onTap});
+  const JeepneyCard({
+    super.key,
+    required this.jeepney,
+    required this.onTap,
+    this.routeLabel,
+  });
   final Jeepney jeepney;
+  final String? routeLabel;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Semantics(
@@ -236,6 +242,24 @@ class JeepneyCard extends StatelessWidget {
                 color: JeepLinkColors.muted,
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          if (routeLabel != null)
+            Text(
+              'Registered route: $routeLabel',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          const SizedBox(height: 8),
+          Text(
+            jeepney.position == null
+                ? 'Last reported GPS location unavailable'
+                : 'Last reported GPS: ${jeepney.position!.latitude.toStringAsFixed(5)}, ${jeepney.position!.longitude.toStringAsFixed(5)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Last update: ${reportTime(jeepney.recordedAt)}',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 18),
           Wrap(

@@ -4,9 +4,15 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/jeepney.dart';
 import '../domain/jeepney_repository.dart';
+import '../domain/passenger_route.dart';
 
 class JeepneyController extends ChangeNotifier {
-  JeepneyController(this._repository, {this.apiMode = false}) {
+  JeepneyController(
+    this._repository, {
+    this.apiMode = false,
+    this._routeRepository = const UnconfiguredRouteRepository(),
+  }) {
+    unawaited(_loadRoutes());
     _subscription = _repository.watchJeepneys().listen(
       (vehicles) {
         _vehicles = List.unmodifiable(vehicles);
@@ -38,27 +44,112 @@ class JeepneyController extends ChangeNotifier {
   List<Jeepney> _vehicles = const [];
   bool loading = true;
   bool refreshing = false;
-  bool availableOnly = false;
+  final RouteRepository _routeRepository;
+  RouteCatalog _catalog = RouteCatalog();
+  bool routesLoading = true;
+  String? routesError;
+  Municipality? origin;
+  Municipality? destination;
+  bool journeySubmitted = false;
+  String? _selectedRouteId;
+  int _routesRequest = 0;
+  List<PassengerRoute> get routes => _catalog.routes;
+  List<PassengerRoute> get matchingRoutes => journeySubmitted
+      ? routes
+            .where((r) => r.origin == origin && r.destination == destination)
+            .toList()
+      : const [];
+  PassengerRoute? get selectedRoute =>
+      matchingRoutes.where((r) => r.id == _selectedRouteId).firstOrNull;
+  bool get validJourney =>
+      origin != null && destination != null && origin != destination;
+
+  void setOrigin(Municipality? value) {
+    origin = value;
+    _resetJourney();
+  }
+
+  void setDestination(Municipality? value) {
+    destination = value;
+    _resetJourney();
+  }
+
+  void swapJourney() {
+    final previous = origin;
+    origin = destination;
+    destination = previous;
+    _resetJourney();
+  }
+
+  void _resetJourney() {
+    journeySubmitted = false;
+    _selectedRouteId = null;
+    query = '';
+    notifyListeners();
+  }
+
+  void editJourney() => _resetJourney();
+
+  void findJeepneys() {
+    if (!validJourney || routesLoading || routesError != null) return;
+    journeySubmitted = true;
+    query = '';
+    _selectedRouteId = matchingRoutes.length == 1
+        ? matchingRoutes.single.id
+        : null;
+    notifyListeners();
+  }
+
+  void selectRoute(String id) {
+    if (!matchingRoutes.any((r) => r.id == id)) return;
+    _selectedRouteId = id;
+    query = '';
+    notifyListeners();
+  }
+
+  List<Jeepney> get journeyVehicles {
+    final route = selectedRoute;
+    if (route == null || routesError != null || routesLoading) return const [];
+    final ids = _catalog.assignments
+        .where((a) => a.routeId == route.id)
+        .map((a) => a.jeepneyId)
+        .toSet();
+    return _vehicles.where((v) => ids.contains(v.id)).toList();
+  }
+
+  Future<void> _loadRoutes() async {
+    final request = ++_routesRequest;
+    routesLoading = true;
+    routesError = null;
+    try {
+      final catalog = await _routeRepository.loadCatalog();
+      if (_disposed || request != _routesRequest) return;
+      _catalog = catalog;
+      if (!matchingRoutes.any((r) => r.id == _selectedRouteId)) {
+        _selectedRouteId = null;
+      }
+    } catch (_) {
+      if (_disposed || request != _routesRequest) return;
+      _catalog = RouteCatalog();
+      _selectedRouteId = null;
+      routesError = 'Unable to load registered routes. Please retry.';
+    } finally {
+      if (!_disposed && request == _routesRequest) {
+        routesLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
   String query = '';
   String? error;
   bool _disposed = false;
 
   List<Jeepney> get vehicles => _vehicles;
-  int get availableCount => _vehicles
-      .where((vehicle) => vehicle.status == OccupancyStatus.available)
-      .length;
-
-  List<Jeepney> get filteredVehicles => _vehicles.where((vehicle) {
-    final matchesStatus =
-        !availableOnly || vehicle.status == OccupancyStatus.available;
+  List<Jeepney> get filteredVehicles => journeyVehicles.where((vehicle) {
     final text = '${vehicle.id} ${vehicle.name}'.toLowerCase();
-    return matchesStatus && text.contains(query.trim().toLowerCase());
+    return text.contains(query.trim().toLowerCase());
   }).toList();
-
-  void setAvailableOnly(bool value) {
-    availableOnly = value;
-    notifyListeners();
-  }
 
   void setQuery(String value) {
     query = value;
@@ -72,9 +163,12 @@ class JeepneyController extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      await _repository.refresh();
+      await Future.wait([_repository.refresh(), _loadRoutes()]);
     } catch (_) {
-      if (!_disposed) error = 'Could not refresh jeepneys. Please try again.';
+      if (!_disposed) {
+        if (apiMode) _vehicles = const [];
+        error = 'Could not refresh jeepneys. Please try again.';
+      }
     } finally {
       if (!_disposed) {
         refreshing = false;

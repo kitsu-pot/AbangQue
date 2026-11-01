@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jeeplink/src/app.dart';
 import 'package:jeeplink/src/data/demo_jeepney_repository.dart';
 import 'package:jeeplink/src/domain/jeepney_repository.dart';
+import 'package:jeeplink/src/domain/passenger_route.dart';
 
 import 'fakes.dart';
 
@@ -12,6 +13,7 @@ Future<void> startApp(
   Size size = const Size(1000, 1000),
   JeepneyRepository? repository,
   double textScale = 1,
+  bool withRoutes = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -24,6 +26,9 @@ Future<void> startApp(
   await tester.pumpWidget(
     JeepLinkApp(
       repository: repository ?? DemoJeepneyRepository(),
+      routeRepository: withRoutes
+          ? TestRouteRepository()
+          : const UnconfiguredRouteRepository(),
       tileProviderFactory: MemoryTileProvider.new,
     ),
   );
@@ -37,39 +42,56 @@ Future<void> tab(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> chooseJourney(WidgetTester tester) async {
+  for (final entry in [(0, 'Boac'), (1, 'Gasan')]) {
+    final field = find
+        .byType(DropdownButtonFormField<Municipality>)
+        .at(entry.$1);
+    await tester.ensureVisible(field);
+    await tester.tap(field);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(entry.$2).last);
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(find.text('Find Jeepneys'));
+  await tester.tap(find.text('Find Jeepneys'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('home labels demo and refresh never invents ETA', (tester) async {
     await startApp(tester);
     expect(find.byKey(const ValueKey('hero-title')), findsOneWidget);
     expect(find.text('DEMO'), findsWidgets);
     expect(find.text('ETA unavailable'), findsWidgets);
-    expect(find.byType(FlutterMap), findsOneWidget);
-    expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
+    expect(find.byType(FlutterMap), findsNothing);
+    expect(find.text('No registered routes available yet.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('vehicle-DEMO-01')), findsNothing);
     await tester.tap(find.byTooltip('Refresh demo'));
     await tester.pumpAndSettle();
     expect(find.text('ETA unavailable'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('fleet filter, search, empty state, and full details work', (
+  testWidgets('selected route search, empty state, and full details work', (
     tester,
   ) async {
-    await startApp(tester);
-    await tab(tester, 'Jeepneys');
-    expect(find.byKey(const ValueKey('vehicle-DEMO-02')), findsOneWidget);
-    await tester.tap(find.text('Available (2)'));
-    await tester.pumpAndSettle();
+    await startApp(tester, withRoutes: true);
     expect(find.byKey(const ValueKey('vehicle-DEMO-02')), findsNothing);
-    await tester.enterText(find.byType(TextFormField), 'DEMO-02');
+    await chooseJourney(tester);
+    expect(find.byKey(const ValueKey('vehicle-DEMO-02')), findsOneWidget);
+    expect(find.byKey(const ValueKey('vehicle-DEMO-03')), findsNothing);
+    await tester.enterText(find.byType(TextFormField), 'missing');
     await tester.pumpAndSettle();
     expect(find.text('No matching jeepneys'), findsOneWidget);
-    await tester.tap(find.text('All jeepneys (3)'));
+    await tester.enterText(find.byType(TextFormField), 'DEMO-02');
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('vehicle-DEMO-02')));
     await tester.tap(find.byKey(const ValueKey('vehicle-DEMO-02')));
     await tester.pumpAndSettle();
     expect(find.text('Demo jeepney 02'), findsOneWidget);
     expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
-    expect(find.text('No official route assigned'), findsOneWidget);
+    expect(find.text('Registered route'), findsOneWidget);
     expect(find.text('FULL'), findsWidgets);
     await tester.ensureVisible(find.text('View last location on map'));
     await tester.tap(find.text('View last location on map'));
@@ -86,7 +108,8 @@ void main() {
   testWidgets('map markers open details and zoom/reset controls work', (
     tester,
   ) async {
-    await startApp(tester);
+    await startApp(tester, withRoutes: true);
+    await chooseJourney(tester);
     await tab(tester, 'Map');
     await tester.ensureVisible(find.byKey(const ValueKey('marker-DEMO-01')));
     await tester.tap(find.byKey(const ValueKey('marker-DEMO-01')));
@@ -136,14 +159,14 @@ void main() {
         tileProviderFactory: MemoryTileProvider.new,
       ),
     );
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
     repository.updates.addError(StateError('Unavailable'));
     await tester.pumpAndSettle();
     expect(find.text('Unable to update the fleet'), findsOneWidget);
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
     expect(find.text('Unable to update the fleet'), findsNothing);
-    expect(find.text('No jeepneys to show'), findsOneWidget);
+    expect(find.text('No registered routes available yet.'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
     expect(repository.disposed, isTrue);

@@ -13,6 +13,7 @@ import 'package:jeeplink/src/domain/jeepney.dart';
 import 'package:jeeplink/src/presentation/jeepney_controller.dart';
 
 import 'fakes.dart';
+import 'widget_test.dart' show chooseJourney;
 
 Map<String, dynamic> record(String id) => {
   'id': id,
@@ -42,6 +43,44 @@ ApiJeepneyRepository repository(
 );
 
 void main() {
+  testWidgets(
+    'current API records stay hidden without registered assignments',
+    (tester) async {
+      var calls = 0;
+      final repo = repository(
+        MockClient((request) async {
+          calls++;
+          expect(request.url.path, '/api/jeepneys');
+          return http.Response(payload(), 200);
+        }),
+      );
+      await tester.pumpWidget(
+        JeepLinkApp(
+          repository: repo,
+          apiMode: true,
+          tileProviderFactory: MemoryTileProvider.new,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(find.text('No registered routes available yet.'), findsOneWidget);
+      await chooseJourney(tester);
+      expect(find.byKey(const ValueKey('vehicle-DEMO-01')), findsNothing);
+      expect(find.byKey(const ValueKey('vehicle-DEMO-02')), findsNothing);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Map'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('marker-DEMO-01')), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
+
   test('configuration selects platform URL, explicit mode and release TLS', () {
     DataConfig config(
       TargetPlatform platform, {
@@ -210,7 +249,7 @@ void main() {
       final controller = JeepneyController(repo, apiMode: true);
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(controller.vehicles.length, 2);
-      expect(controller.availableCount, 0);
+      expect(controller.filteredVehicles, isEmpty);
       fail = true;
       await controller.refresh();
       await Future<void>.delayed(Duration.zero);
@@ -268,14 +307,16 @@ void main() {
       await tester.pumpWidget(
         JeepLinkApp(
           repository: repo,
+          routeRepository: TestRouteRepository(),
           apiMode: true,
           tileProviderFactory: MemoryTileProvider.new,
         ),
       );
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsWidgets);
       first.complete(http.Response(payload(), 200));
       await tester.pumpAndSettle();
-      expect(find.text('API jeepneys'), findsOneWidget);
+      expect(find.byKey(const ValueKey('vehicle-DEMO-01')), findsNothing);
+      await chooseJourney(tester);
       expect(find.text('4 min'), findsNothing);
       await tester.tap(
         find.descendant(
@@ -284,11 +325,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('2 API jeepneys'), findsOneWidget);
-      expect(find.text('Available (0)'), findsOneWidget);
+      expect(find.text('2 jeepneys on this route'), findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNothing);
       expect(find.text('STALE / UNKNOWN'), findsNWidgets(2));
       expect(find.text('ETA unavailable'), findsNWidgets(2));
       expect(find.byKey(const ValueKey('vehicle-DEMO-03')), findsNothing);
+      await tester.ensureVisible(find.byKey(const ValueKey('vehicle-DEMO-01')));
       await tester.tap(find.byKey(const ValueKey('vehicle-DEMO-01')));
       await tester.pumpAndSettle();
       expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
@@ -296,7 +338,7 @@ void main() {
         find.textContaining('Arrival estimates are not implemented.'),
         findsOneWidget,
       );
-      expect(find.textContaining('1 Jan 2026'), findsNWidgets(2));
+      expect(find.textContaining('1 Jan 2026'), findsWidgets);
       await tester.tap(find.byTooltip('Close details'));
       await tester.pumpAndSettle();
       fail = true;
@@ -307,7 +349,7 @@ void main() {
       fail = false;
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
-      expect(find.text('2 API jeepneys'), findsOneWidget);
+      expect(find.text('2 jeepneys on this route'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

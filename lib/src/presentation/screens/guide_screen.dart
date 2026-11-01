@@ -39,8 +39,8 @@ class GuideScreen extends StatelessWidget {
           children: [
             _Step(
               number: '01',
-              title: 'Find a jeepney',
-              text: 'Explore the list or tap a map marker. Locations are last reported positions and may be outdated.',
+              title: 'Choose your journey',
+              text: 'Choose From and To municipalities, then Find Jeepneys. Only explicit assignments to a registered route can appear. Reverse directions are separate.',
             ),
             Divider(height: 32),
             _Step(
@@ -78,7 +78,7 @@ class GuideScreen extends StatelessWidget {
             ),
             const _Question(
               title: 'Are these official routes or stops?',
-              answer: 'No verified routes, stops or schedules are supplied. Operations can vary, including terminal-based departures. Confirm your journey with the operator.',
+              answer: 'The current backend supplies no registered routes or assignments. Municipality choices are journey preferences, not confirmed services. Future routes must come from administrator-managed records. No stops or schedules are invented.',
             ),
             const _Question(
               title: 'Why is ETA unavailable?',

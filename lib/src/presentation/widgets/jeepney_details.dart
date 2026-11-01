@@ -24,7 +24,7 @@ Future<void> showJeepneyDetails(
   builder: (context) => ListenableBuilder(
     listenable: controller,
     builder: (context, _) {
-      final current = controller.vehicles
+      final current = controller.journeyVehicles
           .where((v) => v.id == jeepney.id)
           .firstOrNull;
       if (current == null) {
@@ -42,14 +42,23 @@ Future<void> showJeepneyDetails(
           ),
         );
       }
-      return _Details(jeepney: current, onViewMap: onViewMap);
+      return _Details(
+        jeepney: current,
+        onViewMap: onViewMap,
+        routeLabel: controller.selectedRoute!.label,
+      );
     },
   ),
 );
 
 class _Details extends StatelessWidget {
-  const _Details({required this.jeepney, required this.onViewMap});
+  const _Details({
+    required this.jeepney,
+    required this.onViewMap,
+    required this.routeLabel,
+  });
   final Jeepney jeepney;
+  final String routeLabel;
   final ValueChanged<Jeepney> onViewMap;
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -164,11 +173,12 @@ class _Details extends StatelessWidget {
               ? 'Location unavailable'
               : '${jeepney.position!.latitude.toStringAsFixed(5)}, ${jeepney.position!.longitude.toStringAsFixed(5)}',
         ),
-        const _Info(
+        _Info(
           icon: Icons.alt_route_rounded,
-          title: 'No official route assigned',
-          value: 'Routes, stops and schedules have not been verified.',
+          title: 'Registered route',
+          value: routeLabel,
         ),
+        const Text('Stops and schedules are not supplied.'),
         const SizedBox(height: 12),
         const DemoNotice(),
         const SizedBox(height: 20),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:jeeplink/src/domain/jeepney.dart';
 import 'package:jeeplink/src/domain/jeepney_repository.dart';
+import 'package:jeeplink/src/domain/passenger_route.dart';
 
 /// Exercises the real map/marker widgets without HTTP or disk caching.
 class MemoryTileProvider extends TileProvider {
@@ -38,5 +39,37 @@ class TestRepository implements JeepneyRepository {
   Future<void> dispose() async {
     disposed = true;
     await updates.close();
+  }
+}
+
+// TEST ONLY: explicit assignments exercise future integration, never app data.
+RouteCatalog testRouteCatalog() => RouteCatalog(
+  routes: [
+    PassengerRoute(
+      id: 'TEST-FORWARD',
+      origin: Municipality.boac,
+      destination: Municipality.gasan,
+    ),
+    PassengerRoute(
+      id: 'TEST-REVERSE',
+      origin: Municipality.gasan,
+      destination: Municipality.boac,
+    ),
+  ],
+  assignments: const [
+    RouteAssignment(jeepneyId: 'DEMO-01', routeId: 'TEST-FORWARD'),
+    RouteAssignment(jeepneyId: 'DEMO-02', routeId: 'TEST-FORWARD'),
+    RouteAssignment(jeepneyId: 'DEMO-03', routeId: 'TEST-REVERSE'),
+  ],
+);
+
+class TestRouteRepository implements RouteRepository {
+  TestRouteRepository() : catalog = testRouteCatalog();
+  RouteCatalog catalog;
+  bool fail = false;
+  @override
+  Future<RouteCatalog> loadCatalog() async {
+    if (fail) throw StateError('Test route service unavailable');
+    return catalog;
   }
 }

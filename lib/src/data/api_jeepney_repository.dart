@@ -12,9 +12,16 @@ class ApiJeepneyRepository implements JeepneyRepository {
     required this.baseUrl,
     http.Client? client,
     this.timeout = const Duration(seconds: 10),
+    this.allowSimulation = false,
     this.pollInterval = const Duration(seconds: 30),
-  }) : _client = client ?? http.Client();
+    DateTime Function()? clock,
+  }) : _client = client ?? http.Client(),
+       _clock = clock ?? DateTime.now;
+  final DateTime Function() _clock;
   final Uri baseUrl;
+  final bool allowSimulation;
+  Timer? _expiryTimer;
+  Duration? _staleAfter;
   final http.Client _client;
   final Duration timeout;
   final Duration? pollInterval;
@@ -72,20 +79,58 @@ class ApiJeepneyRepository implements JeepneyRepository {
         throw const FormatException('Invalid API envelope');
       }
       final vehicles = List<Jeepney>.unmodifiable(
-        (json['data'] as List).map(parseApiJeepney),
+        (json['data'] as List)
+            .map(parseApiJeepney)
+            .where((v) => !v.isSimulated || allowSimulation),
       );
       if (vehicles.map((v) => v.id).toSet().length != vehicles.length) {
         throw const FormatException('Duplicate vehicle IDs');
       }
       if (!_disposed) {
+        final meta = json['meta'];
+        final seconds = meta is Map ? meta['staleAfterSeconds'] : null;
+        _staleAfter = seconds is int && seconds > 0
+            ? Duration(seconds: seconds)
+            : null;
         _latest = vehicles;
-        _updates.add(vehicles);
+        _publishWithFreshness();
       }
     } catch (_) {
       if (!_disposed) {
+        _expiryTimer?.cancel();
         _latest = null;
         _updates.addError(const ApiLoadException());
       }
+    }
+  }
+
+  // Expire locally at the server's threshold even between successful polls.
+  // A timer never makes a stale report fresh; only a new API snapshot can do that.
+  void _publishWithFreshness() {
+    _expiryTimer?.cancel();
+    if (_disposed || _latest == null) return;
+    final now = _clock().toUtc();
+    DateTime? next;
+    _latest = List.unmodifiable(
+      _latest!.map((v) {
+        if (_staleAfter == null ||
+            v.isStale ||
+            v.recordedAt == null ||
+            v.lastSeenAt == null) {
+          return v;
+        }
+        final oldest = v.recordedAt!.isBefore(v.lastSeenAt!)
+            ? v.recordedAt!
+            : v.lastSeenAt!;
+        final expires = oldest.add(_staleAfter!);
+        if (!expires.isAfter(now)) return v.asStale();
+        if (next == null || expires.isBefore(next!)) next = expires;
+        return v;
+      }),
+    );
+    _updates.add(_latest!);
+    if (next != null) {
+      _expiryTimer = Timer(next!.difference(now), _publishWithFreshness);
     }
   }
 
@@ -94,6 +139,7 @@ class ApiJeepneyRepository implements JeepneyRepository {
     if (_disposed) return;
     _disposed = true;
     _timer?.cancel();
+    _expiryTimer?.cancel();
     _client.close();
     await _updates.close();
   }
@@ -114,8 +160,11 @@ Jeepney parseApiJeepney(dynamic value) {
   if (j['id'] is! String ||
       (j['id'] as String).isEmpty ||
       j['name'] is! String ||
-      !['demo', 'device'].contains(j['source']) ||
-      j['isDemo'] != (j['source'] == 'demo') ||
+      !['demo', 'device', 'simulated'].contains(j['source']) ||
+      j['isDemo'] != (j['source'] != 'device') ||
+      (j['source'] == 'simulated' && j['isSimulated'] != true) ||
+      (j.containsKey('isSimulated') &&
+          j['isSimulated'] != (j['source'] == 'simulated')) ||
       j['isStale'] is! bool ||
       !['ONLINE', 'OFFLINE', 'DEMO'].contains(j['connectionStatus']) ||
       ![null, 'FULL', 'AVAILABLE'].contains(j['status'])) {
@@ -160,7 +209,16 @@ Jeepney parseApiJeepney(dynamic value) {
     position: point,
     recordedAt: recorded,
     lastSeenAt: seen,
-    source: j['source'] == 'demo' ? DataSource.demo : DataSource.hardware,
+    source: j['source'] == 'simulated'
+        ? DataSource.simulated
+        : j['source'] == 'demo'
+        ? DataSource.demo
+        : DataSource.hardware,
+    operatorName:
+        j['operatorName'] is String &&
+            (j['operatorName'] as String).trim().isNotEmpty
+        ? j['operatorName']
+        : null,
     fromApi: true,
     isStale: stale,
     connectionStatus: j['connectionStatus'],

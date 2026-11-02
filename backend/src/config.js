@@ -1,5 +1,6 @@
 import { z } from 'zod';
 const schema = z.object({
+  ENABLE_GPS_SIMULATOR: z.enum(['false', 'true']).default('false'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   TRUST_PROXY: z.enum(['false', 'loopback']).default('false'),
   AUTH_RATE_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
@@ -16,6 +17,10 @@ const schema = z.object({
 export function loadConfig(env = process.env) {
   const result = schema.safeParse(env);
   if (!result.success) throw new Error('Invalid configuration: ' + result.error.issues.map(i => i.path.join('.')).join(', '));
+  if (result.data.ENABLE_GPS_SIMULATOR === 'true' &&
+      (result.data.NODE_ENV !== 'development' || result.data.HOST !== '127.0.0.1')) {
+    throw new Error('GPS simulator requires development mode and HOST=127.0.0.1');
+  }
   return result.data;
 }
 

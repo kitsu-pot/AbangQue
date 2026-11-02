@@ -392,3 +392,29 @@ components. Offline DEMO is guest-only. Email changes, verification and password
 reset are not implemented. Physical phone/keychain behavior still needs device
 verification. See [AUTHENTICATION.md](AUTHENTICATION.md) for architecture, migration,
 environment settings, security limits and exact launch/verification steps.
+
+## 16. Enhanced details and local simulated GPS (2026-11-01)
+
+Checkpoint `16ecf3c` preserves passenger authentication. Details now include vehicle
+identity, explicit direction, operator-unavailable fallback, coordinates, measurement
+and receipt times, connectivity, manual status and unavailable ETA. Selection follows
+new positions; a local expiry timer ages status between polls.
+
+Migration 003 adds source=simulated to vehicles, credentials and updates to prevent
+hardware mislabeling. It was applied to local PostgreSQL. SIM-GPS-001 was provisioned
+with a private, ignored local tool credential. The Node simulator uses the existing
+protected device update endpoint, requires local development opt-in, waits for a
+manual FULL/AVAILABLE choice, and supports pause/resume. No hardware is claimed.
+
+The new public route catalog is normally empty. Opt-in local testing exposes one
+explicit DEMO Boac-to-Mogpog direction assigned only to SIM-GPS-001. Its synthetic
+coordinate loop near Boac is not route geometry or a real trip. Existing demo rows
+are not reassigned. There are still no administrator-managed operating routes,
+operator registry, route tables or admin dashboard. This supersedes earlier notes
+that no route endpoint exists; that endpoint is now an empty/DEMO catalog boundary.
+
+Flutter requires a local debug-only DEV_GPS_SIMULATION flag to show the test catalog
+and vehicles; otherwise simulated records remain hidden. Simulation mode polls at
+five seconds; ordinary API mode remains thirty seconds. All test data is labeled,
+ETA remains unavailable, and guest/authentication/offline DEMO features are retained.
+See [GPS_SIMULATOR.md](GPS_SIMULATOR.md) for setup, test evidence and phone checks.

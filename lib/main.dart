@@ -8,6 +8,8 @@ import 'src/auth/session_store.dart';
 import 'src/app.dart';
 import 'src/config/data_config.dart';
 import 'src/data/api_jeepney_repository.dart';
+import 'src/data/api_route_repository.dart';
+import 'src/domain/passenger_route.dart';
 import 'src/data/demo_jeepney_repository.dart';
 
 void main() {
@@ -17,9 +19,21 @@ void main() {
     runApp(
       JeepLinkApp(
         repository: config.apiMode
-            ? ApiJeepneyRepository(baseUrl: config.baseUrl)
+            ? ApiJeepneyRepository(
+                baseUrl: config.baseUrl,
+                allowSimulation: config.enableGpsSimulation,
+                pollInterval: Duration(
+                  seconds: config.enableGpsSimulation ? 5 : 30,
+                ),
+              )
             : DemoJeepneyRepository(),
         apiMode: config.apiMode,
+        routeRepository: config.apiMode
+            ? ApiRouteRepository(
+                baseUrl: config.baseUrl,
+                allowSimulation: config.enableGpsSimulation,
+              )
+            : const UnconfiguredRouteRepository(),
         authController: AuthController(
           repository: config.apiMode && !kIsWeb
               ? ApiPassengerAuthRepository(baseUrl: config.baseUrl)

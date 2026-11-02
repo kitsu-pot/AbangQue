@@ -1,4 +1,5 @@
 import express from 'express';
+import { simulationEnabled, simulatorCatalog } from './simulation.js';
 import { passengerAuthRouter } from './passenger-auth.js';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
@@ -21,16 +22,22 @@ export function createApp({ repository, passengerRepository, config, clock = Dat
     }
   });
   if (passengerRepository) app.use('/api/auth', passengerAuthRouter({ repository: passengerRepository, config }));
+  const includeSimulated = simulationEnabled(config);
+  app.get('/api/routes', async (_req, res) => {
+    const vehicle = includeSimulated ? await repository.get('SIM-GPS-001', false, true) : null;
+    res.json({ data: vehicle?.source === 'simulated' ? simulatorCatalog() : { routes: [], assignments: [] },
+      meta: { simulationEnabled: includeSimulated, officialRoutesAvailable: false } });
+  });
   const includeDemo = config.INCLUDE_DEMO === 'true';
   app.get('/api/jeepneys', async (_req, res) => {
     const now = clock();
-    const rows = await repository.list(includeDemo);
+    const rows = await repository.list(includeDemo, includeSimulated);
     res.json({ data: rows.map(row => presentJeepney(row, now, config.STALE_AFTER_SECONDS)),
-      meta: { demoIncluded: includeDemo, etaAvailable: false, staleAfterSeconds: config.STALE_AFTER_SECONDS } });
+      meta: { demoIncluded: includeDemo, simulationEnabled: includeSimulated, etaAvailable: false, staleAfterSeconds: config.STALE_AFTER_SECONDS } });
   });
   app.get('/api/jeepneys/:id', async (req, res) => {
     if (!jeepneyId.safeParse(req.params.id).success) return res.status(400).json({ error: 'INVALID_ID' });
-    const row = await repository.get(req.params.id, includeDemo);
+    const row = await repository.get(req.params.id, includeDemo, includeSimulated);
     if (!row) return res.status(404).json({ error: 'JEEPNEY_NOT_FOUND' });
     res.json({ data: presentJeepney(row, clock(), config.STALE_AFTER_SECONDS) });
   });
@@ -44,6 +51,8 @@ export function createApp({ repository, passengerRepository, config, clock = Dat
       const credential = await repository.credential(token.id);
       const valid = matchesSecret(token.secret, credential?.secret_hash);
       if (!valid || !credential || credential.revoked_at) return res.status(401).json({ error: 'UNAUTHORIZED' });
+      if (credential.source === 'simulated' && !includeSimulated)
+        return res.status(403).json({ error: 'SIMULATION_DISABLED' });
       req.credential = credential;
       next();
     },
@@ -59,7 +68,7 @@ export function createApp({ repository, passengerRepository, config, clock = Dat
       const result = await repository.insertUpdate(req.credential, input);
       if (result.revoked) return res.status(401).json({ error: 'UNAUTHORIZED' });
       if (result.duplicate) return res.status(409).json({ error: 'DUPLICATE_UPDATE' });
-      res.status(201).json({ data: { id: String(result.id), jeepneyId: input.jeepneyId, source: 'device',
+      res.status(201).json({ data: { id: String(result.id), jeepneyId: input.jeepneyId, source: req.credential.source ?? 'device', isSimulated: req.credential.source === 'simulated',
         receivedAt: new Date(result.received_at).toISOString() } });
     });
   app.use((_req, res) => res.status(404).json({ error: 'NOT_FOUND' }));

@@ -73,12 +73,12 @@ class GuideScreen extends StatelessWidget {
               answer: modeText(
                 context,
                 'This offline DEMO uses fictional locations and simulated manual reports. It is not real GPS tracking.',
-                'API mode reads backend records. Historical DEMO records are fixtures, and accepted data does not by itself verify physical GPS hardware.',
+                'API mode reads backend records. SIMULATED / DEMO labels identify test-tool positions and manually chosen test statuses. Historical DEMO records are fixtures, and accepted data does not by itself verify physical GPS hardware.',
               ),
             ),
             const _Question(
               title: 'Are these official routes or stops?',
-              answer: 'The current backend supplies no registered routes or assignments. Municipality choices are journey preferences, not confirmed services. Future routes must come from administrator-managed records. No stops or schedules are invented.',
+              answer: 'The backend supplies no verified operating routes yet. A local-development DEMO test direction may be enabled for GPS testing; it is not an operating route. Municipality choices are journey preferences, not confirmed services. Future routes must come from administrator-managed records. No stops or schedules are invented.',
             ),
             const _Question(
               title: 'Why is ETA unavailable?',

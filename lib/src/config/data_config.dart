@@ -2,7 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 class DataConfig {
-  const DataConfig({required this.apiMode, required this.baseUrl});
+  const DataConfig({
+    required this.apiMode,
+    required this.baseUrl,
+    this.enableGpsSimulation = false,
+  });
+  final bool enableGpsSimulation;
   final bool apiMode;
   final Uri baseUrl;
   factory DataConfig.fromEnvironment() => DataConfig.parse(
@@ -10,12 +15,14 @@ class DataConfig {
     url: const String.fromEnvironment('API_BASE_URL'),
     platform: defaultTargetPlatform,
     debug: kDebugMode,
+    enableGpsSimulation: const bool.fromEnvironment('DEV_GPS_SIMULATION'),
   );
   static DataConfig parse({
     required String mode,
     required String url,
     required TargetPlatform platform,
     required bool debug,
+    bool enableGpsSimulation = false,
   }) {
     if (mode != 'api' && mode != 'demo') {
       throw const FormatException('DATA_MODE must be api or demo.');
@@ -47,7 +54,19 @@ class DataConfig {
         'API mode requires HTTPS outside local debug builds. Set API_BASE_URL.',
       );
     }
-    return DataConfig(apiMode: mode == 'api', baseUrl: uri);
+    if (enableGpsSimulation &&
+        (!debug ||
+            mode != 'api' ||
+            !['127.0.0.1', 'localhost', '10.0.2.2'].contains(uri.host))) {
+      throw const FormatException(
+        'DEV_GPS_SIMULATION is restricted to local API debug builds.',
+      );
+    }
+    return DataConfig(
+      apiMode: mode == 'api',
+      baseUrl: uri,
+      enableGpsSimulation: enableGpsSimulation,
+    );
   }
 }
 

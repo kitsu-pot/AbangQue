@@ -109,3 +109,10 @@ MapConfig keeps provider URL and attribution configurable. There is no offline
 tile-download feature. Fleet reports remain usable if tiles fail to load.
 Review the provider's usage requirements before a larger deployment:
 [OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/).
+
+## Local GPS communication testing
+
+The passenger app supports explicitly labeled, opt-in local SIMULATED GPS updates.
+See [GPS simulator and enhanced details](docs/GPS_SIMULATOR.md) for migration 003,
+provisioning, manual status commands, phone launch flags, isolation and test scope.
+No official operating routes or ETA calculation are introduced.

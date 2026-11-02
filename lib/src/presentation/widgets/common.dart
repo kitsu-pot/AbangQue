@@ -177,7 +177,7 @@ String reportTime(DateTime? date) {
     'Dec',
   ];
   String pad(int value) => value.toString().padLeft(2, '0');
-  return '${utc.day} ${months[utc.month - 1]} ${utc.year} · ${pad(utc.hour)}:${pad(utc.minute)} UTC';
+  return '${utc.day} ${months[utc.month - 1]} ${utc.year} · ${pad(utc.hour)}:${pad(utc.minute)}:${pad(utc.second)} UTC';
 }
 
 class JeepneyCard extends StatelessWidget {
@@ -246,7 +246,7 @@ class JeepneyCard extends StatelessWidget {
           const SizedBox(height: 16),
           if (routeLabel != null)
             Text(
-              'Registered route: $routeLabel',
+              '${jeepney.isSimulated ? 'DEMO test direction' : 'Registered route'}: $routeLabel',
               style: Theme.of(context).textTheme.titleMedium,
             ),
           const SizedBox(height: 8),
@@ -276,7 +276,9 @@ class JeepneyCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            jeepney.fromApi
+            jeepney.isSimulated
+                ? 'SIMULATED manual status selected by the test operator.'
+                : jeepney.fromApi
                 ? 'Status is manually reported by the driver.'
                 : 'DEMO example of a driver-selected status.',
             style: Theme.of(context).textTheme.bodySmall,

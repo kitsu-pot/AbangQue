@@ -14,21 +14,21 @@ const selection = `
 export class PostgresRepository {
   constructor(pool) { this.pool = pool; }
   async health() { await this.pool.query('SELECT 1'); }
-  async list(includeDemo) {
-    return (await this.pool.query(selection + ' WHERE ($1 OR j.source = \'device\') ORDER BY j.id', [includeDemo])).rows;
+  async list(includeDemo, includeSimulated = false) {
+    return (await this.pool.query(selection + ' WHERE (j.source = \'device\' OR ($1 AND j.source = \'demo\') OR ($2 AND j.source = \'simulated\')) ORDER BY j.id', [includeDemo, includeSimulated])).rows;
   }
-  async get(id, includeDemo) {
-    return (await this.pool.query(selection + ' WHERE j.id = $1 AND ($2 OR j.source = \'device\')', [id, includeDemo])).rows[0];
+  async get(id, includeDemo, includeSimulated = false) {
+    return (await this.pool.query(selection + ' WHERE j.id = $1 AND (j.source = \'device\' OR ($2 AND j.source = \'demo\') OR ($3 AND j.source = \'simulated\'))', [id, includeDemo, includeSimulated])).rows[0];
   }
   async credential(id) {
-    return (await this.pool.query('SELECT id, jeepney_id, secret_hash, revoked_at FROM device_credentials WHERE id = $1', [id])).rows[0];
+    return (await this.pool.query('SELECT id, jeepney_id, source, secret_hash, revoked_at FROM device_credentials WHERE id = $1', [id])).rows[0];
   }
   async insertUpdate(credential, input) {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
       // Recheck under lock so revocation cannot race authentication and ingestion.
-      const { rows } = await client.query('SELECT id FROM device_credentials WHERE id=$1 AND jeepney_id=$2 AND revoked_at IS NULL AND secret_hash=$3 FOR SHARE',
+      const { rows } = await client.query('SELECT id, source FROM device_credentials WHERE id=$1 AND jeepney_id=$2 AND revoked_at IS NULL AND secret_hash=$3 FOR SHARE',
         [credential.id, input.jeepneyId, credential.secret_hash]);
       if (!rows.length) {
         await client.query('ROLLBACK');
@@ -37,10 +37,10 @@ export class PostgresRepository {
       const result = await client.query(`
         INSERT INTO location_status_updates
           (jeepney_id, source, credential_id, latitude, longitude, status, recorded_at)
-        VALUES ($1, 'device', $2, $3, $4, $5, $6)
+        VALUES ($1, $7, $2, $3, $4, $5, $6)
         ON CONFLICT (credential_id, recorded_at) DO NOTHING
         RETURNING id, received_at`,
-        [input.jeepneyId, credential.id, input.latitude, input.longitude, input.status, input.timestamp]);
+        [input.jeepneyId, credential.id, input.latitude, input.longitude, input.status, input.timestamp, rows[0].source ?? 'device']);
       await client.query('COMMIT');
       return result.rows[0] ?? { duplicate: true };
     } catch (error) {

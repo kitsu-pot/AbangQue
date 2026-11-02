@@ -53,8 +53,17 @@ class _JeepneyMapState extends State<JeepneyMap> {
   void didUpdateWidget(covariant JeepneyMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focus?.position != null &&
-        widget.focus?.id != oldWidget.focus?.id) {
-      _controller.move(_latLng(widget.focus!.position!), 15.5);
+        (widget.focus?.id != oldWidget.focus?.id ||
+            widget.focus?.position?.latitude !=
+                oldWidget.focus?.position?.latitude ||
+            widget.focus?.position?.longitude !=
+                oldWidget.focus?.position?.longitude)) {
+      _controller.move(
+        _latLng(widget.focus!.position!),
+        widget.focus?.id != oldWidget.focus?.id
+            ? 15.5
+            : _controller.camera.zoom,
+      );
     }
   }
 
@@ -164,7 +173,7 @@ class _JeepneyMapState extends State<JeepneyMap> {
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    '${jeepney.id.split('-').last} · ${jeepney.statusLabel}',
+                                    '${jeepney.isSimulated ? 'SIM' : jeepney.id.split('-').last} · ${jeepney.statusLabel}',
                                     maxLines: 1,
                                     style: const TextStyle(
                                       color: Colors.white,
@@ -194,7 +203,13 @@ class _JeepneyMapState extends State<JeepneyMap> {
               radius: 12,
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
               child: Text(
-                modeText(context, 'DEMO LOCATIONS', 'LAST REPORTED LOCATIONS'),
+                widget.jeepneys.any((v) => v.isSimulated)
+                    ? 'SIMULATED / DEMO LOCATIONS'
+                    : modeText(
+                        context,
+                        'DEMO LOCATIONS',
+                        'LAST REPORTED LOCATIONS',
+                      ),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,

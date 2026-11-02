@@ -109,7 +109,7 @@ class _FleetScreenState extends State<FleetScreen> {
               child: JeepneyMap(
                 jeepneys: vehicles,
                 onSelect: (v) => setState(() => _selectedId = v.id),
-                focus: vehicles.any((v) => v.id == focus?.id) ? focus : null,
+                focus: selected,
                 config: mapConfig,
                 tileProviderFactory: tileProviderFactory,
               ),
@@ -160,6 +160,9 @@ class _FleetScreenState extends State<FleetScreen> {
                     label: selected.statusLabel,
                   ),
                   const SizedBox(height: 10),
+                  Text(selected.sourceLabel),
+                  Text(selected.connectivityLabel),
+                  Text('Last update: ${reportTime(selected.recordedAt)}'),
                   Text('${selected.freshnessLabel} · ETA unavailable'),
                   const SizedBox(height: 12),
                   PassengerButton(

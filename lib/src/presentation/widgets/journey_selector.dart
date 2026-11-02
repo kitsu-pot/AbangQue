@@ -51,6 +51,13 @@ class JourneySelector extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        if (controller.hasSimulationRoutes)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: Text(
+              'SIMULATED / DEMO test catalog · Not an operating route or real traffic.',
+            ),
+          ),
         Text(
           modeText(
             context,
@@ -190,9 +197,11 @@ class JourneyState extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'REGISTERED ROUTE',
-            style: TextStyle(
+          Text(
+            controller.selectedRoute!.isDemo
+                ? 'SIMULATED / DEMO TEST DIRECTION'
+                : 'REGISTERED ROUTE',
+            style: const TextStyle(
               fontSize: 10,
               letterSpacing: 1.2,
               color: JeepLinkColors.green,

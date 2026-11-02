@@ -53,6 +53,7 @@ class JeepneyController extends ChangeNotifier {
   bool journeySubmitted = false;
   String? _selectedRouteId;
   int _routesRequest = 0;
+  bool get hasSimulationRoutes => routes.any((r) => r.isDemo);
   List<PassengerRoute> get routes => _catalog.routes;
   List<PassengerRoute> get matchingRoutes => journeySubmitted
       ? routes
@@ -114,7 +115,13 @@ class JeepneyController extends ChangeNotifier {
         .where((a) => a.routeId == route.id)
         .map((a) => a.jeepneyId)
         .toSet();
-    return _vehicles.where((v) => ids.contains(v.id)).toList();
+    return _vehicles
+        .where(
+          (v) =>
+              ids.contains(v.id) &&
+              (route.isDemo ? v.isSimulated : !v.isSimulated),
+        )
+        .toList();
   }
 
   Future<void> _loadRoutes() async {

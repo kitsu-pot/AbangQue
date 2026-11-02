@@ -19,7 +19,7 @@ test('real PostgreSQL passenger authentication', { skip: process.env.AUTH_INTEGR
     // Generated identifier only. Never touch existing application tables/accounts.
     await admin.query(`CREATE SCHEMA "${schema}"`);
     pool = new pg.Pool({ connectionString: config.DATABASE_URL, options: `-c search_path=${schema}`, connectionTimeoutMillis: 5000 });
-    for (const name of ['001_initial.sql', '002_passenger_auth.sql']) {
+    for (const name of ['001_initial.sql', '002_passenger_auth.sql', '003_simulated_device_source.sql']) {
       await pool.query(await readFile(new URL('../migrations/' + name, import.meta.url), 'utf8'));
     }
     const app = createApp({ repository: new PostgresRepository(pool), passengerRepository: new PassengerRepository(pool), config });

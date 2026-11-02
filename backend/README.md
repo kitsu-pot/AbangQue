@@ -263,3 +263,12 @@ New auth settings and all endpoints are documented in
 The real PostgreSQL suite is npm run test:postgres (isolated temporary schema).
 Default npm test stays database-free and skips that explicit integration suite.
 No account credentials are seeded. No admin login or password reset is implemented.
+
+## Development GPS simulator
+
+Migration 003 adds an explicit simulated source to vehicles, credentials and updates.
+The existing authenticated device endpoint is reused. `GET /api/routes` returns an
+empty catalog normally and an explicitly DEMO test direction only when local
+simulation is enabled and the reserved test vehicle is provisioned. No route tables
+or admin management are implemented. Read [GPS_SIMULATOR.md](../docs/GPS_SIMULATOR.md)
+for the exact opt-in guards, setup, commands, revocation and database/Flutter tests.

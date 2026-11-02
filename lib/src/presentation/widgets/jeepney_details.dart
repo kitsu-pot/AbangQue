@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/jeepney.dart';
+import '../../domain/passenger_route.dart';
 import '../../theme.dart';
 import '../jeepney_controller.dart';
 import 'common.dart';
@@ -45,7 +46,8 @@ Future<void> showJeepneyDetails(
       return _Details(
         jeepney: current,
         onViewMap: onViewMap,
-        routeLabel: controller.selectedRoute!.label,
+        route: controller.selectedRoute!,
+        onRefresh: controller.refreshing ? null : controller.refresh,
       );
     },
   ),
@@ -55,10 +57,12 @@ class _Details extends StatelessWidget {
   const _Details({
     required this.jeepney,
     required this.onViewMap,
-    required this.routeLabel,
+    required this.route,
+    required this.onRefresh,
   });
   final Jeepney jeepney;
-  final String routeLabel;
+  final PassengerRoute route;
+  final VoidCallback? onRefresh;
   final ValueChanged<Jeepney> onViewMap;
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -73,12 +77,18 @@ class _Details extends StatelessWidget {
       children: [
         Row(
           children: [
-            DemoBadge(
-              label: jeepney.source == DataSource.demo
-                  ? 'DEMO'
-                  : 'DRIVER REPORT',
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: DemoBadge(
+                  label: jeepney.isSimulated
+                      ? 'SIMULATED / DEMO'
+                      : jeepney.source == DataSource.demo
+                      ? 'DEMO'
+                      : 'DRIVER REPORT',
+                ),
+              ),
             ),
-            const Spacer(),
             IconButton(
               tooltip: 'Close details',
               onPressed: () => Navigator.pop(context),
@@ -87,8 +97,9 @@ class _Details extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Text(jeepney.name, style: Theme.of(context).textTheme.headlineMedium),
+        Text(jeepney.id, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 6),
+        Text(jeepney.name, style: Theme.of(context).textTheme.titleMedium),
         Text(jeepney.sourceLabel, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 24),
         GlassPanel(
@@ -108,7 +119,9 @@ class _Details extends StatelessWidget {
               StatusBadge(status: jeepney.status, label: jeepney.statusLabel),
               const SizedBox(height: 14),
               Text(
-                jeepney.fromApi
+                jeepney.isSimulated
+                    ? 'SIMULATED manual status chosen by the test operator, not a real driver or traffic report.'
+                    : jeepney.fromApi
                     ? 'FULL or AVAILABLE is selected by the driver. An old or missing report remains unknown.'
                     : 'DEMO only. This example represents a driver-selected status.',
               ),
@@ -155,6 +168,28 @@ class _Details extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         _Info(
+          icon: Icons.route_rounded,
+          title: route.isDemo ? 'DEMO test direction' : 'Registered route',
+          value: '${route.id} · ${route.direction}',
+        ),
+        if (route.isDemo)
+          const Text(
+            'Interface test direction only. The synthetic path does not represent an operating route.',
+          ),
+        _Info(
+          icon: Icons.business_outlined,
+          title: 'Cooperative / operator',
+          value: jeepney.operatorName ?? 'Information unavailable',
+        ),
+        _Info(
+          icon: Icons.sensors_rounded,
+          title: 'Device connectivity',
+          value: jeepney.connectivityLabel,
+        ),
+        const Text(
+          'Connectivity describes the last accepted report, not a continuous connection or verified GPS hardware.',
+        ),
+        _Info(
           icon: Icons.update_rounded,
           title: jeepney.fromApi ? 'Last communication' : 'DEMO snapshot time',
           value: reportTime(
@@ -175,10 +210,15 @@ class _Details extends StatelessWidget {
         ),
         _Info(
           icon: Icons.alt_route_rounded,
-          title: 'Registered route',
-          value: routeLabel,
+          title: 'Travel direction',
+          value: route.direction,
         ),
         const Text('Stops and schedules are not supplied.'),
+        TextButton.icon(
+          onPressed: onRefresh,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Refresh report'),
+        ),
         const SizedBox(height: 12),
         const DemoNotice(),
         const SizedBox(height: 20),

@@ -172,3 +172,8 @@ The owner previously verified the Windows API with PostgreSQL and launched the
 app on the Infinix phone. Those are owner-reported results. The redesign tests use
 mock API responses/map tiles and do not repeat physical API or PostgreSQL checks.
 Backend implementation and database contents are unchanged by this redesign.
+
+Local GPS movement testing is separately opt-in; see [GPS_SIMULATOR.md](GPS_SIMULATOR.md).
+The passenger route adapter now reads GET /api/routes (empty normally), and the
+vehicle adapter expires stale status between polls using backend freshness metadata.
+Neither adapter sends device credentials or device updates.

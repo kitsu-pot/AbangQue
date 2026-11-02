@@ -14,7 +14,11 @@
     "migrate": "node --env-file=.env scripts/migrate.js",
     "seed:demo": "node --env-file=.env scripts/seed-demo.js",
     "device:create": "node --env-file=.env scripts/create-device.js",
-    "test:postgres": "node --env-file=.env scripts/pg-integration.js"
+    "test:postgres": "node --env-file=.env scripts/pg-integration.js",
+    "gps:provision": "node --env-file=.env scripts/gps-provision.js",
+    "gps:simulate": "node --env-file=.env scripts/gps-simulator.js",
+    "gps:revoke": "node --env-file=.env scripts/gps-provision.js --revoke",
+    "test:gps:flutter": "node --env-file=.env scripts/gps-flutter-e2e.js"
   },
   "dependencies": {
     "argon2": "^0.44.0",

@@ -2,7 +2,7 @@
 /// FULL/AVAILABLE is a manually reported state, never a passenger count.
 enum OccupancyStatus { available, full, unknown }
 
-enum DataSource { demo, hardware }
+enum DataSource { demo, hardware, simulated }
 
 class GeoPoint {
   const GeoPoint(this.latitude, this.longitude)
@@ -24,9 +24,12 @@ class Jeepney {
     this.lastSeenAt,
     this.connectionStatus,
     this.reportedStatus,
+    this.operatorName,
   });
   final String id;
   final String name;
+  final String? operatorName;
+  bool get isSimulated => source == DataSource.simulated;
   final GeoPoint? position;
   final DateTime? recordedAt;
   final DateTime? lastSeenAt;
@@ -39,28 +42,61 @@ class Jeepney {
   /// ETA remains unavailable in every mode until an agreed algorithm exists.
   Duration? get eta => null;
   bool get hasFreshReport =>
+      source == DataSource.hardware && hasRecentTelemetry;
+  bool get hasRecentTelemetry =>
       fromApi &&
-      source == DataSource.hardware &&
+      source != DataSource.demo &&
       !isStale &&
       recordedAt != null &&
       lastSeenAt != null &&
       connectionStatus == 'ONLINE';
   OccupancyStatus get status {
     if (isStale ||
-        (fromApi && (source == DataSource.demo || !hasFreshReport))) {
+        (fromApi && (source == DataSource.demo || !hasRecentTelemetry))) {
       return OccupancyStatus.unknown;
     }
     return reportedStatus ?? OccupancyStatus.unknown;
   }
 
+  Jeepney asStale() => Jeepney(
+    id: id,
+    name: name,
+    position: position,
+    recordedAt: recordedAt,
+    lastSeenAt: lastSeenAt,
+    source: source,
+    fromApi: fromApi,
+    isStale: true,
+    connectionStatus: 'OFFLINE',
+    reportedStatus: reportedStatus,
+    operatorName: operatorName,
+  );
+  String get connectivityLabel => !fromApi
+      ? 'DEMO · No device connection'
+      : source == DataSource.demo
+      ? 'Historical DEMO · No device connection'
+      : recordedAt == null || lastSeenAt == null
+      ? 'UNKNOWN · No report received'
+      : isStale
+      ? 'OFFLINE / STALE · No recent report'
+      : isSimulated
+      ? 'ONLINE · Simulated sender report is fresh'
+      : 'ONLINE · Last device report is fresh';
+
   String get statusLabel =>
       isStale ? 'STALE / UNKNOWN' : status.name.toUpperCase();
-  String get sourceLabel => fromApi
+  String get sourceLabel => isSimulated
+      ? 'API · SIMULATED / DEMO'
+      : fromApi
       ? (source == DataSource.demo
             ? 'API · Historical DEMO'
             : 'API · Driver report')
       : 'DEMO · Offline simulation';
-  String get freshnessLabel => !fromApi
+  String get freshnessLabel => isSimulated
+      ? (hasRecentTelemetry
+            ? 'Fresh SIMULATED report'
+            : 'SIMULATED report outdated')
+      : !fromApi
       ? 'Simulated report'
       : source == DataSource.demo
       ? 'Historical demo'

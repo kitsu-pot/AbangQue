@@ -10,13 +10,14 @@ enum Municipality {
   final String label;
 }
 
-/// A direction explicitly registered by the future route service. Choosing two
+/// A backend direction or explicitly marked development fixture. Choosing two
 /// municipalities never constructs one of these records.
 class PassengerRoute {
   PassengerRoute({
     required this.id,
     required this.origin,
     required this.destination,
+    this.isDemo = false,
   }) {
     if (id.trim().isEmpty || origin == destination) {
       throw ArgumentError(
@@ -25,9 +26,11 @@ class PassengerRoute {
     }
   }
   final String id;
+  final bool isDemo;
   final Municipality origin;
   final Municipality destination;
-  String get label => '${origin.label} → ${destination.label}';
+  String get direction => '${origin.label} → ${destination.label}';
+  String get label => isDemo ? 'DEMO test direction · $direction' : direction;
 }
 
 class RouteAssignment {
@@ -59,9 +62,7 @@ abstract interface class RouteRepository {
   Future<RouteCatalog> loadCatalog();
 }
 
-/// Current backend has no route API. Makes no guessed HTTP request and never
-/// assigns existing DEMO records. Replace via dependency injection once an
-/// administrator-managed passenger route contract is implemented and validated.
+/// Empty catalog for offline preview and tests; never assigns existing demos.
 class UnconfiguredRouteRepository implements RouteRepository {
   const UnconfiguredRouteRepository();
   @override

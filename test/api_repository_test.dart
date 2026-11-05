@@ -347,6 +347,7 @@ void main() {
       expect(find.text('Unable to update the fleet'), findsOneWidget);
       expect(find.byKey(const ValueKey('vehicle-DEMO-01')), findsNothing);
       fail = false;
+      await tester.ensureVisible(find.text('Try again'));
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
       expect(find.text('2 jeepneys on this route'), findsOneWidget);

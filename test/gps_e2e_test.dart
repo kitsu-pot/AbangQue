@@ -12,6 +12,7 @@ import 'package:jeeplink/src/domain/passenger_route.dart';
 
 import 'fakes.dart';
 import 'widget_test.dart' show tab;
+import 'waiting_location_widget_test.dart' show tapText, tapMap;
 
 // Native HTTP only in this explicitly enabled test. No test device secret enters Dart.
 class _NativeHttp extends HttpOverrides {}
@@ -20,6 +21,24 @@ http.Client nativeClient() => HttpOverrides.runWithHttpOverrides(
   () => IOClient(HttpClient()),
   _NativeHttp(),
 );
+
+class _PublicClient extends http.BaseClient {
+  _PublicClient(this.requests);
+  final List<Uri> requests;
+  final _inner = nativeClient();
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    // Waiting coordinates must never enter a request to the AbangQue API.
+    expect(request.method, 'GET');
+    expect(request.url.query, isEmpty);
+    expect(request.url.path, anyOf('/api/jeepneys', '/api/routes'));
+    requests.add(request.url);
+    return _inner.send(request);
+  }
+
+  @override
+  void close() => _inner.close();
+}
 
 class _LoadedRoutes implements RouteRepository {
   _LoadedRoutes(this.catalog);
@@ -31,7 +50,7 @@ class _LoadedRoutes implements RouteRepository {
 void main() {
   const url = String.fromEnvironment('GPS_E2E_URL');
   testWidgets(
-    'real PostgreSQL simulator updates Flutter details, route markers and stale recovery',
+    'real PostgreSQL simulator preserves private waiting pin, route markers and stale recovery',
     (tester) async {
       final origin = Uri.parse(url);
       expect(origin.host, '127.0.0.1');
@@ -42,10 +61,11 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       final control = nativeClient();
+      final publicRequests = <Uri>[];
       addTearDown(control.close);
       final repo = ApiJeepneyRepository(
         baseUrl: origin,
-        client: nativeClient(),
+        client: _PublicClient(publicRequests),
         pollInterval: null,
         allowSimulation: true,
       );
@@ -71,7 +91,7 @@ void main() {
         () => ApiRouteRepository(
           baseUrl: origin,
           allowSimulation: true,
-          clientFactory: nativeClient,
+          clientFactory: () => _PublicClient(publicRequests),
         ).loadCatalog(),
       );
       expect(catalog!.routes.single.isDemo, true);
@@ -100,6 +120,10 @@ void main() {
       await tester.tap(find.text('Find Jeepneys'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('vehicle-UNASSIGNED')), findsNothing);
+      await tapText(tester, 'Choose on Map');
+      await tapMap(tester, offset: const Offset(-30, 20));
+      await tapText(tester, 'Confirm Location');
+      await tester.pump(const Duration(seconds: 5));
       final card = find.byKey(const ValueKey('vehicle-SIM-GPS-001'));
       await tester.ensureVisible(card);
       await tester.tap(card);
@@ -115,7 +139,16 @@ void main() {
       await tester.tap(find.text('View last location on map'));
       await tester.pumpAndSettle();
       Marker marker() =>
-          tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers.single;
+          tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers.last;
+      final waitingPoint = tester
+          .widget<MarkerLayer>(find.byType(MarkerLayer))
+          .markers
+          .first
+          .point;
+      expect(
+        tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers,
+        hasLength(2),
+      );
       expect(marker().point.latitude, closeTo(13.4463, .000001));
       await command('available');
       expect(marker().point.latitude, closeTo(13.4466, .000001));
@@ -131,6 +164,23 @@ void main() {
       await command('stale');
       expect(find.text('STALE / UNKNOWN'), findsWidgets);
       expect(find.textContaining('OFFLINE / STALE'), findsWidgets);
+      final both = find.byTooltip('Show waiting point and selected jeepney');
+      await tester.ensureVisible(both);
+      await tester.tap(both);
+      await tester.pumpAndSettle();
+      final bounds = tester
+          .widget<FlutterMap>(find.byType(FlutterMap))
+          .mapController!
+          .camera
+          .visibleBounds;
+      expect(bounds.contains(waitingPoint), true);
+      expect(bounds.contains(marker().point), true);
+      expect(
+        find.byKey(const ValueKey('passenger-waiting-marker')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('marker-SIM-GPS-001')), findsOneWidget);
+      expect(find.byType(PolylineLayer), findsNothing);
       await command('full');
       expect(find.text('STALE / UNKNOWN'), findsNothing);
       expect(find.text('FULL'), findsWidgets);
@@ -155,8 +205,21 @@ void main() {
       await tab(tester, 'Map');
       expect(
         tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers,
-        isEmpty,
+        hasLength(1),
       );
+      expect(
+        tester
+            .widget<MarkerLayer>(find.byType(MarkerLayer))
+            .markers
+            .single
+            .point,
+        waitingPoint,
+      );
+      expect(
+        publicRequests.where((uri) => uri.path == '/api/jeepneys').length,
+        greaterThan(3),
+      );
+      expect(publicRequests.any((uri) => uri.path == '/api/routes'), true);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

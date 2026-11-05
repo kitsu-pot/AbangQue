@@ -46,3 +46,13 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local credentials and private runtime data (source examples remain shareable).
+.env
+.env.*
+!.env.example
+**/.local/
+node_modules/
+*.jks
+*.keystore
+key.properties

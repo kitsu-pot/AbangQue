@@ -90,7 +90,7 @@ class GuideScreen extends StatelessWidget {
             ),
             const _Question(
               title: 'Does the app use my location?',
-              answer: 'No location permission is requested. The map opens around Boac, Marinduque. Its markers are jeepney records, not your position.',
+              answer: 'Only when you tap Use My Location. One foreground device reading is shown for your confirmation. You can instead choose on the map without permission. The blue passenger pin is a session-only waiting reference, not a verified boarding point. No background tracking or ETA is provided.',
             ),
           ],
         ),

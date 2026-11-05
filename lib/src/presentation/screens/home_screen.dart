@@ -7,9 +7,15 @@ import '../widgets/glass.dart';
 import '../widgets/journey_selector.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.controller, required this.onFind});
+  const HomeScreen({
+    super.key,
+    required this.controller,
+    required this.onFind,
+    this.waitingPanel,
+  });
   final JeepneyController controller;
   final VoidCallback onFind;
+  final Widget? waitingPanel;
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -40,6 +46,7 @@ class HomeScreen extends StatelessWidget {
       JourneySelector(controller: controller, onFind: onFind),
       const SizedBox(height: 20),
       JourneyState(controller: controller),
+      if (waitingPanel != null) ...[const SizedBox(height: 20), waitingPanel!],
       const SizedBox(height: 20),
       const GlassPanel(
         child: Column(

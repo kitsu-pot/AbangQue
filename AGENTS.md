@@ -7,6 +7,18 @@ permission to implement every module.
 
 ## Scope and continuity
 
+- GitHub sync preference (owner instruction, 2026-11-06): repository
+  https://github.com/kitsu-pot/AbangQue.git is the project's remote backup.
+  After completing project changes, run the applicable checks, review the diff
+  for secrets/generated files, commit the intended changes and push to GitHub
+  as part of the same task. This is standing authorization; do not ask again for
+  routine commits/pushes. Keep the default branch current when permitted; if
+  branch protection requires a pull request, use a codex/ branch and report it.
+  Fetch/reconcile remote changes safely; never force-push or overwrite others'
+  work. Report push failures honestly. Exclude .env, device credentials, private
+  local data, dependencies, build output and signing keys. No background watcher
+  is installed; edits made outside an active work session are not auto-synced.
+
 - Official user-facing name: **AbangQue**. Project location: Marinduque,
   Philippines. Preserve the existing jeeplink workspace, package/internal
   identifiers, API paths and database resources unless a change is necessary.

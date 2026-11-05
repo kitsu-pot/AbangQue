@@ -9,6 +9,12 @@ server-revoked logout are implemented. **Continue as Guest** keeps transportatio
 information public. Offline DEMO remains guest-only. See
 [authentication setup and security](docs/AUTHENTICATION.md) before running accounts.
 
+Passengers, including guests, can optionally confirm a waiting point using one
+foreground device reading or a tap on OpenStreetMap. The blue pin is session-only,
+can be changed/cleared, and is never uploaded to the backend or saved to an account.
+It is a reference, not a verified boarding point. See
+[waiting locations and phone verification](docs/WAITING_LOCATION.md).
+
 ## Run and verify
 
 Developed with Flutter 3.47.5 / Dart 3.13.4. From this project directory:
@@ -54,11 +60,13 @@ DEMO records never become current availability or count as fresh device reports.
 **ETA is unavailable in both modes.** No arrival calculation, official routes,
 stops, schedules, fares or verified GPS hardware operation are supplied. The
 fictional pickup marker has been removed. The preset map center near Boac is
-not the passenger's location; the app requests no location permission.
+not the passenger's location. Only Use My Location requests foreground permission;
+manual map selection and transportation browsing do not require it.
 
-API is the default, using only GET /api/jeepneys. It polls every 30 seconds and
+API is the default, reading GET /api/jeepneys and the route catalog at
+GET /api/routes. Ordinary API mode polls vehicles every 30 seconds and
 supports manual refresh with a 10-second request timeout. Freshness comes from
-the latest backend response. Failures clear API rows and offer retry; the app
+the latest backend response and local expiry between polls. Failures clear API rows and offer retry; the app
 never silently substitutes demo records. Offline DEMO retains three fictional
 vehicles internally, but none are assigned to routes or exposed as passenger
 results. Refresh changes the underlying examples without inventing assignments.
@@ -71,6 +79,8 @@ Repository/controller/UI boundaries remain intact:
 - lib/src/config: compile-time data mode, secure API origin, map configuration.
 - lib/src/data: separate API and offline demo repositories.
 - lib/src/domain: immutable vehicle/status and route/assignment models, repository contracts.
+- lib/src/location: session-only waiting state, cancellable foreground acquisition,
+  permission/error handling and reusable picker/panel.
 - lib/src/presentation: controller, screens and reusable widgets.
 - lib/src/presentation/widgets/glass.dart: glass panels, backdrop, controls,
   short entrance animation and reduced-motion handling.
@@ -81,7 +91,8 @@ Repository/controller/UI boundaries remain intact:
 Most glass depth uses static gradients, reflection borders and light shadows.
 Only the small navigation surface applies clipped sigma-8 backdrop blur.
 Reduced-motion settings disable that blur and the custom entrance animation.
-There are no new dependencies, looping effects or full-screen blur filters.
+There are no looping effects or full-screen blur filters. Foreground device
+positioning uses the pinned geolocator plugin; no background tracking is enabled.
 Hero text and artwork use normal layout flow with no fixed-height text overlay.
 
 The pre-route-selection checkpoint is a2b3d22; the earlier pre-redesign checkpoint

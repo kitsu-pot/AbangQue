@@ -1,5 +1,12 @@
 # AbangQue — Project brief
 
+GitHub repository: https://github.com/kitsu-pot/AbangQue
+
+Owner preference recorded 2026-11-06: commit and push completed project changes
+after relevant checks in each development task. AGENTS.md carries the standing
+sync instructions. This does not install a background file watcher or publish
+local secrets, database contents, dependencies or generated build artifacts.
+
 Updated: 2026-10-31  
 Official title: **AbangQue: An IoT-Based Real-Time Jeepney Tracking and Passenger Assistance System**  
 Location: **Marinduque, Philippines**  
@@ -418,3 +425,21 @@ and vehicles; otherwise simulated records remain hidden. Simulation mode polls a
 five seconds; ordinary API mode remains thirty seconds. All test data is labeled,
 ETA remains unavailable, and guest/authentication/offline DEMO features are retained.
 See [GPS_SIMULATOR.md](GPS_SIMULATOR.md) for setup, test evidence and phone checks.
+
+## 17. Passenger waiting location (2026-11-02)
+
+Checkpoint `aa6fd70` preserves the preceding simulated-GPS/details implementation.
+The optional passenger waiting-location feature adds a cancellable foreground
+device reading, manual OSM tap selection, confirmation/cancel/change/clear, a
+distinct blue marker and a show-both camera action with a selected jeepney.
+Guests retain full access. Route filtering, status freshness and unavailable ETA
+remain independent of the waiting point. No fictional paths or boarding points
+are created. Permission is requested only on Use My Location.
+
+Selection is memory-only for this session, clears on account change/logout/restart,
+and is neither uploaded nor linked to an account. No backend/schema change or new
+migration is required. OSM tile requests still reveal the viewed area to the tile
+provider. Foreground-only geolocator acquisition stops after one fix, timeout,
+cancel or app backgrounding; mock and low-accuracy readings are disclosed.
+See [WAITING_LOCATION.md](WAITING_LOCATION.md) for architecture, privacy, checks
+and exact Infinix verification instructions. Physical-phone validation is pending.

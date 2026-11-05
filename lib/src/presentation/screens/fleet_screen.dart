@@ -19,12 +19,16 @@ class FleetScreen extends StatefulWidget {
     required this.showMap,
     required this.mapConfig,
     this.focus,
+    this.waitingPoint,
+    this.waitingPanel,
     this.tileProviderFactory,
   });
   final JeepneyController controller;
   final ValueChanged<Jeepney> onSelect;
   final bool showMap;
   final Jeepney? focus;
+  final GeoPoint? waitingPoint;
+  final Widget? waitingPanel;
   final MapConfig mapConfig;
   final TileProviderFactory? tileProviderFactory;
 
@@ -84,6 +88,10 @@ class _FleetScreenState extends State<FleetScreen> {
         ],
         const SizedBox(height: 18),
         JourneyState(controller: controller),
+        if (widget.waitingPanel != null) ...[
+          const SizedBox(height: 18),
+          widget.waitingPanel!,
+        ],
         const SizedBox(height: 18),
         if (controller.selectedRoute != null) ...[
           TextFormField(
@@ -110,6 +118,7 @@ class _FleetScreenState extends State<FleetScreen> {
                 jeepneys: vehicles,
                 onSelect: (v) => setState(() => _selectedId = v.id),
                 focus: selected,
+                waitingPoint: widget.waitingPoint,
                 config: mapConfig,
                 tileProviderFactory: tileProviderFactory,
               ),

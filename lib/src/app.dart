@@ -19,6 +19,11 @@ import 'presentation/widgets/glass.dart';
 import 'presentation/widgets/jeepney_details.dart';
 import 'presentation/widgets/jeepney_map.dart';
 import 'theme.dart';
+import 'location/device_location_service.dart';
+import 'location/waiting_location_controller.dart';
+import 'location/waiting_location_panel.dart';
+import 'location/waiting_location_picker.dart';
+import 'location/waiting_location.dart';
 
 /// Composition root. Owns the supplied repository for this app's lifetime.
 class JeepLinkApp extends StatefulWidget {
@@ -29,8 +34,10 @@ class JeepLinkApp extends StatefulWidget {
     this.tileProviderFactory,
     this.apiMode = false,
     this.authController,
+    this.locationService,
     this.routeRepository = const UnconfiguredRouteRepository(),
   });
+  final DeviceLocationService? locationService;
   final JeepneyRepository repository;
   final AuthController? authController;
   final RouteRepository routeRepository;
@@ -43,6 +50,26 @@ class JeepLinkApp extends StatefulWidget {
 }
 
 class _JeepLinkAppState extends State<JeepLinkApp> {
+  final _waiting = WaitingLocationController();
+  late final _locationService =
+      widget.locationService ?? ForegroundDeviceLocationService();
+  String? _accountId;
+  @override
+  void initState() {
+    super.initState();
+    _accountId = widget.authController?.user?.id;
+    widget.authController?.addListener(_accountChanged);
+  }
+
+  void _accountChanged() {
+    final id = widget.authController?.user?.id;
+    if (id != _accountId) {
+      _accountId = id;
+      _waiting.clear();
+      _locationService.cancel();
+    }
+  }
+
   late final _controller = JeepneyController(
     widget.repository,
     apiMode: widget.apiMode,
@@ -51,6 +78,9 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
 
   @override
   void dispose() {
+    widget.authController?.removeListener(_accountChanged);
+    _locationService.cancel();
+    _waiting.dispose();
     _controller.dispose();
     widget.authController?.dispose();
     unawaited(widget.repository.dispose());
@@ -74,6 +104,8 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
     mapConfig: widget.mapConfig,
     tileProviderFactory: widget.tileProviderFactory,
     authController: widget.authController,
+    waiting: _waiting,
+    locationService: _locationService,
   );
 }
 
@@ -81,10 +113,14 @@ class _PassengerShell extends StatefulWidget {
   const _PassengerShell({
     required this.controller,
     required this.mapConfig,
+    required this.waiting,
+    required this.locationService,
     this.tileProviderFactory,
     this.authController,
   });
   final AuthController? authController;
+  final WaitingLocationController waiting;
+  final DeviceLocationService locationService;
   final JeepneyController controller;
   final MapConfig mapConfig;
   final TileProviderFactory? tileProviderFactory;
@@ -98,6 +134,46 @@ class _PassengerShellState extends State<_PassengerShell> {
   Jeepney? _focus;
   int _mapSelection = 0;
   final _scrollController = ScrollController();
+
+  Future<void> _chooseWaiting({required bool device}) async {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    final accountId = widget.authController?.user?.id;
+    final location = await Navigator.of(context).push<WaitingLocation>(
+      MaterialPageRoute(
+        builder: (_) => WaitingLocationPicker(
+          service: widget.locationService,
+          initial: widget.waiting.selected,
+          requestDeviceLocation: device,
+          mapConfig: widget.mapConfig,
+          tileProviderFactory: widget.tileProviderFactory,
+        ),
+      ),
+    );
+    if (!mounted ||
+        location == null ||
+        widget.authController?.user?.id != accountId) {
+      return;
+    }
+    widget.waiting.confirm(location);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Waiting location confirmed for this session.'),
+      ),
+    );
+  }
+
+  Widget _waitingPanel() => WaitingLocationPanel(
+    selected: widget.waiting.selected,
+    onDevice: () => _chooseWaiting(device: true),
+    onMap: () => _chooseWaiting(device: false),
+    onClear: () {
+      widget.waiting.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Waiting location cleared.')),
+      );
+    },
+    onViewMap: () => _selectTab(1),
+  );
 
   void _selectTab(int tab) {
     setState(() {
@@ -126,7 +202,7 @@ class _PassengerShellState extends State<_PassengerShell> {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: widget.controller,
+    animation: Listenable.merge([widget.controller, widget.waiting]),
     builder: (context, _) => GlassBackdrop(
       child: Scaffold(
         appBar: AppBar(
@@ -303,13 +379,19 @@ class _PassengerShellState extends State<_PassengerShell> {
   );
 
   Widget _page() => switch (_tab) {
-    0 => HomeScreen(controller: widget.controller, onFind: () => _selectTab(2)),
+    0 => HomeScreen(
+      controller: widget.controller,
+      onFind: () => _selectTab(2),
+      waitingPanel: _waitingPanel(),
+    ),
     1 || 2 => FleetScreen(
       key: ValueKey('fleet-$_tab-$_mapSelection'),
       controller: widget.controller,
       onSelect: _showDetails,
       showMap: _tab == 1,
       focus: _focus,
+      waitingPanel: _waitingPanel(),
+      waitingPoint: widget.waiting.selected?.point,
       mapConfig: widget.mapConfig,
       tileProviderFactory: widget.tileProviderFactory,
     ),

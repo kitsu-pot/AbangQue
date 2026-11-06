@@ -8,6 +8,16 @@ import 'package:jeeplink/src/location/device_location_service.dart';
 import 'package:jeeplink/src/location/waiting_location.dart';
 import 'package:jeeplink/src/location/waiting_location_controller.dart';
 
+class MemoryPromptStore implements LocationPromptStore {
+  bool requested = false;
+  @override
+  Future<bool> wasRequested() async => requested;
+  @override
+  Future<void> markRequested() async {
+    requested = true;
+  }
+}
+
 class FakeLocationPlatform extends GeolocatorPlatform {
   bool enabled = true;
   LocationPermission permission = LocationPermission.denied;
@@ -96,7 +106,10 @@ void main() {
   });
   test('no startup access; permission then one position; listener stops immediately', () async {
     final native = FakeLocationPlatform();
-    final service = ForegroundDeviceLocationService(platform: native);
+    final service = ForegroundDeviceLocationService(
+      permissionStore: MemoryPromptStore(),
+      platform: native,
+    );
     expect(native.requests, 0);
     expect(native.reads, 0);
     final future = service.locate();
@@ -127,7 +140,10 @@ void main() {
         if (kind == LocationProblem.deniedForever) {
           native.permission = LocationPermission.deniedForever;
         }
-        final service = ForegroundDeviceLocationService(platform: native);
+        final service = ForegroundDeviceLocationService(
+          permissionStore: MemoryPromptStore(),
+          platform: native,
+        );
         await expectLater(service.locate(), throwsA(problem(kind)));
         expect(native.reads, 0);
         expect(native.appSettings, 0);
@@ -138,6 +154,44 @@ void main() {
     );
   }
   test(
+    'denial is prompted once across requests and service restoration',
+    () async {
+      final native = FakeLocationPlatform()
+        ..requestedPermission = LocationPermission.denied;
+      final store = MemoryPromptStore();
+      final service = ForegroundDeviceLocationService(
+        platform: native,
+        permissionStore: store,
+      );
+      await expectLater(
+        service.locate(),
+        throwsA(problem(LocationProblem.denied)),
+      );
+      await expectLater(
+        service.locate(),
+        throwsA(problem(LocationProblem.denied)),
+      );
+      final restored = ForegroundDeviceLocationService(
+        platform: native,
+        permissionStore: store,
+      );
+      await expectLater(
+        restored.locate(),
+        throwsA(problem(LocationProblem.denied)),
+      );
+      expect(native.requests, 1);
+      expect(native.reads, 0);
+      native.permission = LocationPermission.whileInUse;
+      final result = restored.locate();
+      await Future<void>.delayed(Duration.zero);
+      native.positions.add(fix());
+      await result;
+      expect(native.requests, 1);
+      expect(native.reads, 1);
+      await native.positions.close();
+    },
+  );
+  test(
     'timeout, cancellation and platform failure all stop acquisition',
     () async {
       for (final kind in [
@@ -147,6 +201,7 @@ void main() {
       ]) {
         final native = FakeLocationPlatform();
         final service = ForegroundDeviceLocationService(
+          permissionStore: MemoryPromptStore(),
           platform: native,
           timeout: const Duration(milliseconds: 40),
         );
@@ -168,7 +223,10 @@ void main() {
     () async {
       final native = FakeLocationPlatform()
         ..pendingPermission = Completer<LocationPermission>();
-      final service = ForegroundDeviceLocationService(platform: native);
+      final service = ForegroundDeviceLocationService(
+        permissionStore: MemoryPromptStore(),
+        platform: native,
+      );
       final check = expectLater(
         service.locate(),
         throwsA(problem(LocationProblem.cancelled)),
@@ -185,7 +243,10 @@ void main() {
     'old positions are rejected; low accuracy and mock readings stay explicit',
     () async {
       final native = FakeLocationPlatform();
-      final service = ForegroundDeviceLocationService(platform: native);
+      final service = ForegroundDeviceLocationService(
+        permissionStore: MemoryPromptStore(),
+        platform: native,
+      );
       final check = expectLater(
         service.locate(),
         throwsA(problem(LocationProblem.oldFix)),
@@ -197,7 +258,10 @@ void main() {
       await check;
       await native.positions.close();
       final other = FakeLocationPlatform();
-      final next = ForegroundDeviceLocationService(platform: other).locate();
+      final next = ForegroundDeviceLocationService(
+        permissionStore: MemoryPromptStore(),
+        platform: other,
+      ).locate();
       await Future<void>.delayed(Duration.zero);
       other.positions.add(fix(accuracy: 600, mocked: true));
       final reading = await next;

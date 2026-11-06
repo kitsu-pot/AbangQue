@@ -12,6 +12,7 @@ import 'domain/jeepney_repository.dart';
 import 'domain/passenger_route.dart';
 import 'presentation/jeepney_controller.dart';
 import 'presentation/screens/fleet_screen.dart';
+import 'presentation/screens/route_map_screen.dart';
 import 'presentation/screens/guide_screen.dart';
 import 'presentation/screens/home_screen.dart';
 import 'presentation/widgets/common.dart';
@@ -129,13 +130,74 @@ class _PassengerShell extends StatefulWidget {
   State<_PassengerShell> createState() => _PassengerShellState();
 }
 
-class _PassengerShellState extends State<_PassengerShell> {
+class _PassengerShellState extends State<_PassengerShell>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      widget.waiting.cancel();
+    }
+  }
+
+  void _findOnMap() {
+    _selectTab(1);
+    if (widget.waiting.selected?.source != WaitingLocationSource.manualMap) {
+      unawaited(widget.waiting.locate(widget.locationService));
+    }
+  }
+
+  void _locationOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => AnimatedBuilder(
+        animation: widget.waiting,
+        builder: (_, _) => SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.waiting.failure != null)
+                Text(widget.waiting.failure!.message),
+              if (widget.waiting.failure?.problem == LocationProblem.denied ||
+                  widget.waiting.failure?.problem ==
+                      LocationProblem.deniedForever)
+                TextButton(
+                  onPressed: widget.locationService.openAppSettings,
+                  child: const Text('Open app settings'),
+                ),
+              if (widget.waiting.failure?.problem == LocationProblem.disabled)
+                TextButton(
+                  onPressed: widget.locationService.openLocationSettings,
+                  child: const Text('Open location settings'),
+                ),
+              _waitingPanel(),
+              TextButton(
+                onPressed: () => Navigator.pop(sheetContext),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   int _tab = 0;
-  Jeepney? _focus;
-  int _mapSelection = 0;
   final _scrollController = ScrollController();
 
   Future<void> _chooseWaiting({required bool device}) async {
+    Navigator.of(context).pop();
+    widget.waiting.cancel();
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     final accountId = widget.authController?.user?.id;
     final location = await Navigator.of(context).push<WaitingLocation>(
@@ -172,13 +234,16 @@ class _PassengerShellState extends State<_PassengerShell> {
         const SnackBar(content: Text('Waiting location cleared.')),
       );
     },
-    onViewMap: () => _selectTab(1),
+    onViewMap: () {
+      Navigator.pop(context);
+      _selectTab(1);
+    },
   );
 
   void _selectTab(int tab) {
+    if (tab != 1) widget.waiting.cancel();
     setState(() {
       _tab = tab;
-      _focus = null;
     });
     if (_scrollController.hasClients) _scrollController.jumpTo(0);
   }
@@ -186,16 +251,17 @@ class _PassengerShellState extends State<_PassengerShell> {
   void _showDetails(Jeepney jeepney) =>
       showJeepneyDetails(context, jeepney, (selected) {
         widget.controller.setQuery('');
+        widget.controller.selectJeepney(selected);
         setState(() {
           _tab = 1;
-          _focus = selected;
-          _mapSelection++;
         });
         if (_scrollController.hasClients) _scrollController.jumpTo(0);
       }, widget.controller);
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.waiting.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -205,138 +271,151 @@ class _PassengerShellState extends State<_PassengerShell> {
     animation: Listenable.merge([widget.controller, widget.waiting]),
     builder: (context, _) => GlassBackdrop(
       child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: MediaQuery.textScalerOf(context).scale(1) > 1.5
-              ? 104
-              : 80,
-          titleSpacing: 16,
-          title: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: JeepLinkColors.green,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(
-                  Icons.airport_shuttle_rounded,
-                  color: JeepLinkColors.lime,
-                  size: 27,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        appBar: _tab == 1
+            ? null
+            : AppBar(
+                toolbarHeight: MediaQuery.textScalerOf(context).scale(1) > 1.5
+                    ? 104
+                    : 80,
+                titleSpacing: 16,
+                title: Row(
                   children: [
-                    Text(
-                      'AbangQue',
-                      style: TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -.7,
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: JeepLinkColors.green,
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(
+                        Icons.airport_shuttle_rounded,
+                        color: JeepLinkColors.lime,
+                        size: 27,
                       ),
                     ),
-                    Text(
-                      'MARINDUQUE',
-                      style: TextStyle(
-                        fontSize: 8,
-                        letterSpacing: 1.1,
-                        color: JeepLinkColors.muted,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AbangQue',
+                            style: TextStyle(
+                              fontSize: 23,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -.7,
+                            ),
+                          ),
+                          Text(
+                            'MARINDUQUE',
+                            style: TextStyle(
+                              fontSize: 8,
+                              letterSpacing: 1.1,
+                              color: JeepLinkColors.muted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
+                actions: [
+                  if (widget.authController != null)
+                    IconButton(
+                      tooltip: 'Passenger profile',
+                      icon: const Icon(Icons.account_circle_outlined),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => PassengerProfileScreen(
+                            controller: widget.authController!,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  IconButton(
+                    tooltip: modeText(context, 'Refresh demo', 'Refresh API'),
+                    onPressed: widget.controller.refreshing
+                        ? null
+                        : widget.controller.refresh,
+                    icon: widget.controller.refreshing
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              semanticsLabel: 'Refreshing fleet',
+                            ),
+                          )
+                        : const Icon(Icons.refresh_rounded),
+                  ),
+                  const SizedBox(width: 8),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            if (widget.authController != null)
-              IconButton(
-                tooltip: 'Passenger profile',
-                icon: const Icon(Icons.account_circle_outlined),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => PassengerProfileScreen(
-                      controller: widget.authController!,
+        body: _tab == 1
+            ? RouteMapScreen(
+                controller: widget.controller,
+                waiting: widget.waiting,
+                onFind: _findOnMap,
+                onLocate: () => widget.waiting.locate(widget.locationService),
+                onWaitingOptions: _locationOptions,
+                onDetails: _showDetails,
+                mapConfig: widget.mapConfig,
+                tileProviderFactory: widget.tileProviderFactory,
+              )
+            : SafeArea(
+                top: false,
+                bottom: false,
+                child: RefreshIndicator(
+                  onRefresh: widget.controller.refresh,
+                  child: SingleChildScrollView(
+                    key: const ValueKey('page-scroll'),
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1040),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (widget.controller.hasSimulationRoutes) ...[
+                              const GlassPanel(
+                                child: Text(
+                                  'SIMULATED / DEMO GPS TEST · Positions and status are generated by a local test tool. Not real traffic or an operating route.',
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (widget.controller.error != null) ...[
+                              EmptyState(
+                                title: 'Unable to update the fleet',
+                                message: widget.controller.error!,
+                                action: FilledButton(
+                                  onPressed: widget.controller.refresh,
+                                  child: const Text('Try again'),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                            if (widget.controller.loading && _tab != 3)
+                              const Padding(
+                                padding: EdgeInsets.all(80),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    semanticsLabel: 'Loading jeepneys',
+                                  ),
+                                ),
+                              ),
+                            SoftEntrance(key: ValueKey(_tab), child: _page()),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-
-            IconButton(
-              tooltip: modeText(context, 'Refresh demo', 'Refresh API'),
-              onPressed: widget.controller.refreshing
-                  ? null
-                  : widget.controller.refresh,
-              icon: widget.controller.refreshing
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        semanticsLabel: 'Refreshing fleet',
-                      ),
-                    )
-                  : const Icon(Icons.refresh_rounded),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: SafeArea(
-          top: false,
-          bottom: false,
-          child: RefreshIndicator(
-            onRefresh: widget.controller.refresh,
-            child: SingleChildScrollView(
-              key: const ValueKey('page-scroll'),
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1040),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (widget.controller.hasSimulationRoutes) ...[
-                        const GlassPanel(
-                          child: Text(
-                            'SIMULATED / DEMO GPS TEST · Positions and status are generated by a local test tool. Not real traffic or an operating route.',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (widget.controller.error != null) ...[
-                        EmptyState(
-                          title: 'Unable to update the fleet',
-                          message: widget.controller.error!,
-                          action: FilledButton(
-                            onPressed: widget.controller.refresh,
-                            child: const Text('Try again'),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      if (widget.controller.loading && _tab != 3)
-                        const Padding(
-                          padding: EdgeInsets.all(80),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              semanticsLabel: 'Loading jeepneys',
-                            ),
-                          ),
-                        ),
-                      SoftEntrance(key: ValueKey(_tab), child: _page()),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
         bottomNavigationBar: SafeArea(
           top: false,
           minimum: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -381,19 +460,21 @@ class _PassengerShellState extends State<_PassengerShell> {
   Widget _page() => switch (_tab) {
     0 => HomeScreen(
       controller: widget.controller,
-      onFind: () => _selectTab(2),
-      waitingPanel: _waitingPanel(),
+      onFind: _findOnMap,
+      waitingPanel: TextButton(
+        onPressed: _locationOptions,
+        child: const Text('Waiting location options'),
+      ),
     ),
-    1 || 2 => FleetScreen(
-      key: ValueKey('fleet-$_tab-$_mapSelection'),
+    2 => FleetScreen(
+      key: const ValueKey('fleet-list'),
       controller: widget.controller,
       onSelect: _showDetails,
-      showMap: _tab == 1,
-      focus: _focus,
-      waitingPanel: _waitingPanel(),
-      waitingPoint: widget.waiting.selected?.point,
-      mapConfig: widget.mapConfig,
-      tileProviderFactory: widget.tileProviderFactory,
+      onFind: _findOnMap,
+      waitingPanel: TextButton(
+        onPressed: _locationOptions,
+        child: const Text('Waiting location options'),
+      ),
     ),
     _ => GuideScreen(onMap: () => _selectTab(1)),
   };

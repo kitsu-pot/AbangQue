@@ -9,13 +9,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jeeplink/src/app.dart';
+import 'package:jeeplink/src/presentation/screens/route_map_screen.dart';
 import 'package:jeeplink/src/auth/auth_controller.dart';
 import 'package:jeeplink/src/data/demo_jeepney_repository.dart';
 import 'package:jeeplink/src/domain/jeepney.dart';
 import 'package:jeeplink/src/location/device_location_service.dart';
 import 'package:jeeplink/src/location/waiting_location.dart';
-import 'package:jeeplink/src/location/waiting_location_panel.dart';
-import 'package:jeeplink/src/location/waiting_location_picker.dart';
 
 import 'auth_test.dart' show MemorySessionStore, api, data, session;
 import 'fakes.dart';
@@ -139,142 +138,130 @@ Future<void> snapshotWaiting(WidgetTester tester, String name) async {
   });
 }
 
-WaitingLocation? selected(WidgetTester tester) => tester
-    .widget<WaitingLocationPanel>(find.byType(WaitingLocationPanel))
-    .selected;
+WaitingLocation? selected(WidgetTester tester) =>
+    tester.widget<RouteMapScreen>(find.byType(RouteMapScreen)).waiting.selected;
+
+Future<void> options(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Waiting location options'));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   for (final scale in [1.0, 2.0]) {
     testWidgets(
-      'guest manual waiting selection, cancel, change and clear at scale $scale',
+      'Find opens full map once; guest manual change/clear and sheet gestures at $scale',
       (tester) async {
         final service = FakeDeviceLocation();
         await startWaitingApp(tester, service, scale: scale, guest: true);
-        await chooseJourney(tester);
-        await tapText(tester, 'Choose on Map');
-        expect(service.calls, 0);
-        expect(
-          find.byKey(const ValueKey('passenger-waiting-marker')),
-          findsNothing,
-        );
-        await tapMap(tester);
-        await snapshotWaiting(tester, 'picker-$scale');
+        await chooseJourney(tester, stayOnMap: true);
+        expect(service.calls, 1);
+        expect(selected(tester)!.source, WaitingLocationSource.deviceGps);
         expect(
           find.byKey(const ValueKey('passenger-waiting-marker')),
           findsOneWidget,
         );
+        expect(find.byKey(const ValueKey('marker-DEMO-03')), findsNothing);
         expect(
-          find.text('Map-selected point · GPS accuracy does not apply'),
-          findsOneWidget,
+          tester.getSize(find.byType(FlutterMap)).height,
+          greaterThan(600),
         );
-        await tapText(tester, 'Confirm Location');
-        final first = selected(tester)!;
-        await tester.pump(const Duration(seconds: 5));
-        await tester.ensureVisible(find.text('Waiting location selected'));
+        await snapshotWaiting(tester, 'full-map-$scale');
+        // Map pan changes the camera without expanding the sheet.
+        final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
+        final center = map.mapController!.camera.center;
+        final rect = tester.getRect(find.byType(FlutterMap));
+        await tester.dragFrom(
+          Offset(rect.left + 40, rect.top + 330),
+          const Offset(50, -30),
+        );
         await tester.pumpAndSettle();
-        await snapshotWaiting(tester, 'confirmed-$scale');
-        expect(first.source, WaitingLocationSource.manualMap);
-        expect(find.text('Boac → Gasan'), findsWidgets);
-        await tab(tester, 'Map');
-        expect(
-          find.byKey(const ValueKey('passenger-waiting-marker')),
-          findsOneWidget,
+        expect(map.mapController!.camera.center, isNot(center));
+        final before = tester
+            .getTopLeft(find.byKey(const ValueKey('sheet-handle')))
+            .dy;
+        await tester.drag(
+          find.byKey(const ValueKey('sheet-handle')),
+          const Offset(0, -180),
         );
-        expect(find.byKey(const ValueKey('marker-DEMO-01')), findsOneWidget);
+        await tester.pumpAndSettle();
+        expect(
+          tester.getTopLeft(find.byKey(const ValueKey('sheet-handle'))).dy,
+          lessThan(before),
+        );
+        await snapshotWaiting(tester, 'expanded-map-$scale');
+        await tester.tap(find.byTooltip('Collapse jeepney panel'));
+        await tester.pumpAndSettle();
+        await options(tester);
         await tapText(tester, 'Change Location');
-        await tapMap(tester, offset: const Offset(-35, 25));
+        await tapMap(tester, offset: const Offset(-25, 20));
+        await tapText(tester, 'Confirm Location');
+        expect(selected(tester)!.source, WaitingLocationSource.manualMap);
+        final first = selected(tester);
+        await tester.pump(const Duration(seconds: 5));
+        await options(tester);
+        await tapText(tester, 'Change Location');
+        await tapMap(tester, offset: const Offset(20, 20));
         await tapText(tester, 'Cancel');
         expect(selected(tester), same(first));
-        await tapText(tester, 'Change Location');
-        await tapMap(tester, offset: const Offset(-35, 25));
-        await tapText(tester, 'Confirm Location');
-        expect(selected(tester)!.point.latitude, isNot(first.point.latitude));
+        await tester.tap(find.byTooltip('Change journey'));
+        await tester.pumpAndSettle();
+        await tapText(tester, 'Find Jeepneys');
+        expect(selected(tester), same(first));
+        expect(service.calls, 1);
+        await options(tester);
         await tapText(tester, 'Clear Location');
+        await tapText(tester, 'Close');
         expect(selected(tester), isNull);
-        expect(
-          find.byKey(const ValueKey('passenger-waiting-marker')),
-          findsNothing,
-        );
-        expect(find.byKey(const ValueKey('marker-DEMO-01')), findsOneWidget);
-        expect(service.calls, 0);
+        await tab(tester, 'Guide');
+        await tab(tester, 'Map');
+        expect(service.calls, 1);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();
       },
     );
   }
-  testWidgets(
-    'account changes clear waiting state without storing or uploading it',
-    (tester) async {
-      final store = MemorySessionStore();
-      final payloads = <Object>[];
-      final auth = AuthController(
-        repository: api((request) async {
-          if (request.body.isNotEmpty) payloads.add(jsonDecode(request.body));
-          return request.url.path.endsWith('logout')
-              ? data({}, 204)
-              : data(session());
-        }),
-        store: store,
-      )..continueAsGuest();
-      await startWaitingApp(tester, FakeDeviceLocation(), auth: auth);
-      await tapText(tester, 'Choose on Map');
-      await tapMap(tester);
-      await tapText(tester, 'Confirm Location');
-      expect(selected(tester), isNotNull);
-      expect(store.value, isNull);
-      expect(payloads, isEmpty);
-      await auth.authenticate(
-        email: 'passenger@example.test',
-        password: 'a long unique passphrase',
-      );
-      await tester.pumpAndSettle();
-      expect(auth.user, isNotNull);
-      expect(selected(tester), isNull);
-      expect(payloads.single, {
-        'email': 'passenger@example.test',
-        'password': 'a long unique passphrase',
-      });
-      await tapText(tester, 'Choose on Map');
-      await tapMap(tester);
-      await tapText(tester, 'Confirm Location');
-      expect(selected(tester), isNotNull);
-      await auth.logout();
-      await tester.pumpAndSettle();
-      expect(auth.user, isNull);
-      await tapText(tester, 'Continue as Guest');
-      expect(selected(tester), isNull);
-      expect(store.value, isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
-    },
-  );
-  testWidgets(
-    'device location requires explicit confirmation and preserves low accuracy warning',
-    (tester) async {
-      final service = FakeDeviceLocation()..accuracy = 650;
-      await startWaitingApp(tester, service);
-      await tapText(tester, 'Use My Location');
-      expect(service.calls, 1);
-      expect(find.textContaining('Low accuracy'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('passenger-waiting-marker')),
-        findsOneWidget,
-      );
-      await tapText(tester, 'Cancel');
-      expect(selected(tester), isNull);
-      await tapText(tester, 'Use My Location');
-      await tapText(tester, 'Confirm Location');
-      expect(selected(tester)!.accuracyMeters, 650);
-      expect(selected(tester)!.source, WaitingLocationSource.deviceGps);
-      await tab(tester, 'Guide');
-      await tab(tester, 'Home');
-      expect(selected(tester), isNotNull);
-      expect(service.calls, 2);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
-    },
-  );
+  testWidgets('account changes clear automatic location without uploading it', (
+    tester,
+  ) async {
+    final store = MemorySessionStore();
+    final payloads = <Object>[];
+    final auth = AuthController(
+      repository: api((request) async {
+        if (request.body.isNotEmpty) payloads.add(jsonDecode(request.body));
+        return request.url.path.endsWith('logout')
+            ? data({}, 204)
+            : data(session());
+      }),
+      store: store,
+    )..continueAsGuest();
+    await startWaitingApp(tester, FakeDeviceLocation(), auth: auth);
+    await chooseJourney(tester, stayOnMap: true);
+    expect(selected(tester), isNotNull);
+    expect(store.value, isNull);
+    expect(payloads, isEmpty);
+    await auth.authenticate(
+      email: 'passenger@example.test',
+      password: 'a long unique passphrase',
+    );
+    await tester.pumpAndSettle();
+    expect(selected(tester), isNull);
+    expect(payloads.single, {
+      'email': 'passenger@example.test',
+      'password': 'a long unique passphrase',
+    });
+    await tester.tap(find.byTooltip('My Location'));
+    await tester.pumpAndSettle();
+    expect(selected(tester), isNotNull);
+    await auth.logout();
+    await tester.pumpAndSettle();
+    await tapText(tester, 'Continue as Guest');
+    await tab(tester, 'Map');
+    expect(selected(tester), isNull);
+    expect(store.value, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
   for (final failure in [
     LocationProblem.denied,
     LocationProblem.deniedForever,
@@ -282,41 +269,51 @@ void main() {
     LocationProblem.timeout,
     LocationProblem.unavailable,
   ]) {
-    testWidgets(
-      '$failure keeps manual selection usable, supports retry and settings',
-      (tester) async {
-        final service = FakeDeviceLocation()..failure = failure;
-        await startWaitingApp(tester, service);
-        await tapText(tester, 'Use My Location');
-        expect(find.byKey(const ValueKey('location-error')), findsOneWidget);
-        if (failure == LocationProblem.deniedForever) {
-          await tapText(tester, 'Open app settings');
-        }
-        if (failure == LocationProblem.disabled) {
-          await tapText(tester, 'Open location settings');
-        }
-        service.failure = null;
-        await tapText(tester, 'Retry location');
-        expect(service.calls, 2);
-        await tapMap(tester);
-        await tapText(tester, 'Confirm Location');
-        expect(selected(tester)!.source, WaitingLocationSource.manualMap);
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox.shrink());
-        await tester.pumpAndSettle();
-      },
-    );
+    testWidgets('$failure leaves route map usable with manual fallback', (
+      tester,
+    ) async {
+      final service = FakeDeviceLocation()..failure = failure;
+      await startWaitingApp(tester, service);
+      await chooseJourney(tester, stayOnMap: true);
+      expect(service.calls, 1);
+      expect(selected(tester), isNull);
+      expect(find.byKey(const ValueKey('marker-DEMO-01')), findsOneWidget);
+      await options(tester);
+      if (failure == LocationProblem.denied ||
+          failure == LocationProblem.deniedForever) {
+        await tapText(tester, 'Open app settings');
+        expect(service.settings, 1);
+      }
+      if (failure == LocationProblem.disabled) {
+        await tapText(tester, 'Open location settings');
+        expect(service.settings, 1);
+      }
+      await tapText(tester, 'Choose on Map');
+      await tapMap(tester);
+      await tapText(tester, 'Confirm Location');
+      expect(selected(tester)!.source, WaitingLocationSource.manualMap);
+      expect(service.calls, 1);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    });
   }
   testWidgets(
-    'leaving foreground cancels acquisition and ignores a late location',
+    'automatic one-reading accuracy and background cancellation stay honest',
     (tester) async {
-      final service = FakeDeviceLocation()..pending = Completer<DeviceFix>();
+      final service = FakeDeviceLocation()..accuracy = 650;
       await startWaitingApp(tester, service);
-      await tester.ensureVisible(find.text('Use My Location'));
-      await tester.tap(find.text('Use My Location'));
+      await chooseJourney(tester, stayOnMap: true);
+      expect(selected(tester)!.lowAccuracy, true);
+      await options(tester);
+      expect(find.textContaining('Low accuracy'), findsWidgets);
+      await tapText(tester, 'Clear Location');
+      await tapText(tester, 'Close');
+      service.pending = Completer<DeviceFix>();
+      await tester.tap(find.byTooltip('My Location'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.byType(WaitingLocationPicker), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
       service.pending!.complete(
@@ -326,16 +323,13 @@ void main() {
         ),
       );
       await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('passenger-waiting-marker')),
-        findsNothing,
-      );
-      expect(service.calls, 1);
-      expect(service.cancels, greaterThan(0));
-      await tapText(tester, 'Cancel');
       expect(selected(tester), isNull);
+      expect(service.calls, 2);
+      expect(service.cancels, greaterThan(0));
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     },

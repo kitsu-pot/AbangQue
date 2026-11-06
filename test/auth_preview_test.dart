@@ -45,6 +45,7 @@ void main() {
       RepaintBoundary(
         key: boundaryKey,
         child: JeepLinkApp(
+          locationService: NoDeviceLocation(),
           repository: DemoJeepneyRepository(),
           tileProviderFactory: MemoryTileProvider.new,
           authController: AuthController(

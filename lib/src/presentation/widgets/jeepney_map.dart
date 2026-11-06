@@ -25,6 +25,9 @@ class JeepneyMap extends StatefulWidget {
     this.waitingPoint,
     this.onWaitingPointTap,
     this.pickingWaitingLocation = false,
+    this.fullScreen = false,
+    this.overlayPadding = EdgeInsets.zero,
+    this.onLocate,
   });
 
   final List<Jeepney> jeepneys;
@@ -36,6 +39,9 @@ class JeepneyMap extends StatefulWidget {
   final GeoPoint? waitingPoint;
   final ValueChanged<GeoPoint>? onWaitingPointTap;
   final bool pickingWaitingLocation;
+  final bool fullScreen;
+  final EdgeInsets overlayPadding;
+  final VoidCallback? onLocate;
 
   @override
   State<JeepneyMap> createState() => _JeepneyMapState();
@@ -56,15 +62,60 @@ class _JeepneyMapState extends State<JeepneyMap> {
 
   LatLng _latLng(GeoPoint point) => LatLng(point.latitude, point.longitude);
 
+  EdgeInsets _cameraPadding(EdgeInsets padding) {
+    // A keyboard or very short window can leave less room than the overlays.
+    final size = _controller.camera.nonRotatedSize;
+    final vertical = padding.vertical > size.height - 64
+        ? ((size.height - 64) / padding.vertical).clamp(0.0, 1.0)
+        : 1.0;
+    final horizontal = padding.horizontal > size.width - 64
+        ? ((size.width - 64) / padding.horizontal).clamp(0.0, 1.0)
+        : 1.0;
+    return EdgeInsets.fromLTRB(
+      padding.left * horizontal,
+      padding.top * vertical,
+      padding.right * horizontal,
+      padding.bottom * vertical,
+    );
+  }
+
+  void _focusPoint(GeoPoint point, double zoom) {
+    if (!widget.fullScreen) {
+      _controller.move(_latLng(point), zoom);
+      return;
+    }
+    _controller.fitCamera(
+      CameraFit.coordinates(
+        coordinates: [_latLng(point)],
+        padding: _cameraPadding(
+          widget.overlayPadding + const EdgeInsets.all(42),
+        ),
+        maxZoom: zoom,
+        minZoom: 1,
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(covariant JeepneyMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.overlayPadding != oldWidget.overlayPadding) {
+      if (_showBoth) {
+        _fitBoth();
+      } else if (widget.focus?.position != null ||
+          widget.waitingPoint != null) {
+        _focusPoint(
+          widget.focus?.position ?? widget.waitingPoint!,
+          _controller.camera.zoom,
+        );
+      }
+    }
     if (widget.waitingPoint != oldWidget.waitingPoint &&
         widget.waitingPoint != null) {
       if (_showBoth && widget.focus?.position != null) {
         _fitBoth();
       } else {
-        _controller.move(_latLng(widget.waitingPoint!), 15.5);
+        _focusPoint(widget.waitingPoint!, 15.5);
       }
     }
     if (widget.focus?.position != null &&
@@ -76,8 +127,8 @@ class _JeepneyMapState extends State<JeepneyMap> {
       if (_showBoth && widget.waitingPoint != null) {
         _fitBoth();
       } else {
-        _controller.move(
-          _latLng(widget.focus!.position!),
+        _focusPoint(
+          widget.focus!.position!,
           widget.focus?.id != oldWidget.focus?.id
               ? 15.5
               : _controller.camera.zoom,
@@ -94,7 +145,9 @@ class _JeepneyMapState extends State<JeepneyMap> {
     _controller.fitCamera(
       CameraFit.coordinates(
         coordinates: [_latLng(waiting), _latLng(vehicle)],
-        padding: const EdgeInsets.fromLTRB(54, 70, 70, 60),
+        padding: _cameraPadding(
+          widget.overlayPadding + const EdgeInsets.fromLTRB(54, 40, 70, 50),
+        ),
         maxZoom: 16,
         minZoom: 1,
       ),
@@ -138,7 +191,7 @@ class _JeepneyMapState extends State<JeepneyMap> {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(22),
+    borderRadius: BorderRadius.circular(widget.fullScreen ? 0 : 22),
     child: Stack(
       children: [
         FlutterMap(
@@ -149,6 +202,16 @@ class _JeepneyMapState extends State<JeepneyMap> {
                   widget.waitingPoint ??
                   DemoScenario.center,
             ),
+            onMapReady: () {
+              if (widget.fullScreen &&
+                  (widget.focus?.position != null ||
+                      widget.waitingPoint != null)) {
+                _focusPoint(
+                  widget.focus?.position ?? widget.waitingPoint!,
+                  15.5,
+                );
+              }
+            },
             initialZoom: widget.focus == null ? 14.8 : 15.5,
             minZoom: 1,
             maxZoom: 18,
@@ -267,46 +330,50 @@ class _JeepneyMapState extends State<JeepneyMap> {
             ),
           ],
         ),
-        Positioned(
-          top: 12,
-          left: 12,
-          right: 72,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: GlassPanel(
-              radius: 12,
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-              child: Text(
-                widget.pickingWaitingLocation
-                    ? 'WAITING PIN PREVIEW'
-                    : widget.waitingPoint != null
-                    ? (widget.jeepneys.any((v) => v.isSimulated)
-                          ? 'BLUE: WAITING · BUS: SIMULATED / DEMO'
-                          : widget.jeepneys.any(
-                              (v) => v.source == DataSource.demo,
-                            )
-                          ? 'BLUE: WAITING · BUS: DEMO REPORT'
-                          : 'BLUE: WAITING · BUS: LAST REPORT')
-                    : widget.jeepneys.any((v) => v.isSimulated)
-                    ? 'SIMULATED / DEMO LOCATIONS'
-                    : modeText(
-                        context,
-                        'DEMO LOCATIONS',
-                        'LAST REPORTED LOCATIONS',
-                      ),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: .8,
-                  color: JeepLinkColors.ink,
+        if (!widget.fullScreen)
+          Positioned(
+            top: 12,
+            left: 12,
+            right: 72,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: GlassPanel(
+                radius: 12,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
+                child: Text(
+                  widget.pickingWaitingLocation
+                      ? 'WAITING PIN PREVIEW'
+                      : widget.waitingPoint != null
+                      ? (widget.jeepneys.any((v) => v.isSimulated)
+                            ? 'BLUE: WAITING · BUS: SIMULATED / DEMO'
+                            : widget.jeepneys.any(
+                                (v) => v.source == DataSource.demo,
+                              )
+                            ? 'BLUE: WAITING · BUS: DEMO REPORT'
+                            : 'BLUE: WAITING · BUS: LAST REPORT')
+                      : widget.jeepneys.any((v) => v.isSimulated)
+                      ? 'SIMULATED / DEMO LOCATIONS'
+                      : modeText(
+                          context,
+                          'DEMO LOCATIONS',
+                          'LAST REPORTED LOCATIONS',
+                        ),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .8,
+                    color: JeepLinkColors.ink,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         if (_tileError)
           Positioned(
-            bottom: 48,
+            bottom: widget.overlayPadding.bottom + 48,
             left: 12,
             right: 72,
             child: ConstrainedBox(
@@ -338,7 +405,7 @@ class _JeepneyMapState extends State<JeepneyMap> {
               ),
             ),
           ),
-        if (widget.interactive)
+        if (widget.interactive && !widget.fullScreen)
           Positioned(
             right: 12,
             bottom: 56,
@@ -358,7 +425,7 @@ class _JeepneyMapState extends State<JeepneyMap> {
                     'Show waiting point',
                     () {
                       _showBoth = false;
-                      _controller.move(_latLng(widget.waitingPoint!), 15.5);
+                      _focusPoint(widget.waitingPoint!, 15.5);
                     },
                   ),
                   const SizedBox(height: 6),
@@ -392,8 +459,31 @@ class _JeepneyMapState extends State<JeepneyMap> {
               ],
             ),
           ),
+        if (widget.fullScreen)
+          Positioned(
+            right: 12,
+            top: widget.overlayPadding.top + 8,
+            child: Column(
+              children: [
+                _mapButton(
+                  Icons.my_location_rounded,
+                  'My Location',
+                  widget.onLocate ?? () {},
+                ),
+                if (widget.waitingPoint != null &&
+                    widget.focus?.position != null) ...[
+                  const SizedBox(height: 8),
+                  _mapButton(
+                    Icons.fit_screen_rounded,
+                    'Show waiting point and selected jeepney',
+                    _fitBoth,
+                  ),
+                ],
+              ],
+            ),
+          ),
         Positioned(
-          bottom: 0,
+          bottom: widget.overlayPadding.bottom,
           right: 0,
           child: Material(
             color: Colors.white,

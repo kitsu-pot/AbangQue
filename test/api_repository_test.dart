@@ -56,6 +56,7 @@ void main() {
       );
       await tester.pumpWidget(
         JeepLinkApp(
+          locationService: NoDeviceLocation(),
           repository: repo,
           apiMode: true,
           tileProviderFactory: MemoryTileProvider.new,
@@ -306,6 +307,7 @@ void main() {
       );
       await tester.pumpWidget(
         JeepLinkApp(
+          locationService: NoDeviceLocation(),
           repository: repo,
           routeRepository: TestRouteRepository(),
           apiMode: true,

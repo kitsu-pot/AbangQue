@@ -173,8 +173,7 @@ void main() {
       await tab(tester, 'Map');
       expect(find.byType(FlutterMap), findsOneWidget);
       expect(find.byKey(const ValueKey('marker-DEMO-01')), findsNothing);
-      await tester.ensureVisible(find.text('Change journey'));
-      await tester.tap(find.text('Change journey'));
+      await tester.tap(find.byTooltip('Change journey'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.byTooltip('Swap origin and destination'));
       await tester.tap(find.byTooltip('Swap origin and destination'));

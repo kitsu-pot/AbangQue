@@ -295,6 +295,7 @@ void main() {
         );
         await tester.pumpWidget(
           JeepLinkApp(
+            locationService: NoDeviceLocation(),
             repository: DemoJeepneyRepository(),
             authController: c,
             tileProviderFactory: MemoryTileProvider.new,
@@ -384,6 +385,7 @@ void main() {
       );
       await tester.pumpWidget(
         JeepLinkApp(
+          locationService: NoDeviceLocation(),
           repository: DemoJeepneyRepository(),
           authController: c,
           tileProviderFactory: MemoryTileProvider.new,

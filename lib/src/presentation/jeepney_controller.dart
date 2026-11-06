@@ -84,6 +84,7 @@ class JeepneyController extends ChangeNotifier {
 
   void _resetJourney() {
     journeySubmitted = false;
+    selectedJeepneyId = null;
     _selectedRouteId = null;
     query = '';
     notifyListeners();
@@ -146,6 +147,15 @@ class JeepneyController extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  String? selectedJeepneyId;
+  Jeepney? get selectedJeepney =>
+      filteredVehicles.where((v) => v.id == selectedJeepneyId).firstOrNull;
+  void selectJeepney(Jeepney vehicle) {
+    if (!filteredVehicles.any((v) => v.id == vehicle.id)) return;
+    selectedJeepneyId = vehicle.id;
+    notifyListeners();
   }
 
   String query = '';

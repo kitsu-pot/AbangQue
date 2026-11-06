@@ -25,6 +25,7 @@ Future<void> startApp(
   });
   await tester.pumpWidget(
     JeepLinkApp(
+      locationService: NoDeviceLocation(),
       repository: repository ?? DemoJeepneyRepository(),
       routeRepository: withRoutes
           ? TestRouteRepository()
@@ -42,7 +43,10 @@ Future<void> tab(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> chooseJourney(WidgetTester tester) async {
+Future<void> chooseJourney(
+  WidgetTester tester, {
+  bool stayOnMap = false,
+}) async {
   for (final entry in [(0, 'Boac'), (1, 'Gasan')]) {
     final field = find
         .byType(DropdownButtonFormField<Municipality>)
@@ -56,6 +60,7 @@ Future<void> chooseJourney(WidgetTester tester) async {
   await tester.ensureVisible(find.text('Find Jeepneys'));
   await tester.tap(find.text('Find Jeepneys'));
   await tester.pumpAndSettle();
+  if (!stayOnMap) await tab(tester, 'Jeepneys');
 }
 
 void main() {
@@ -98,16 +103,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.byKey(const ValueKey('marker-DEMO-02')), findsOneWidget);
-    expect(
-      tester.widget<TextFormField>(find.byType(TextFormField)).initialValue,
-      isEmpty,
-    );
+    await tester.tap(find.byTooltip('Expand full jeepney list'));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('map markers open details and zoom/reset controls work', (
-    tester,
-  ) async {
+  testWidgets('map markers open details and panel collapses', (tester) async {
     await startApp(tester, withRoutes: true);
     await chooseJourney(tester);
     await tab(tester, 'Map');
@@ -122,13 +123,9 @@ void main() {
     expect(find.text('MANUALLY REPORTED STATUS'), findsOneWidget);
     await tester.tap(find.byTooltip('Close details'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byTooltip('Zoom in'));
-    await tester.tap(find.byTooltip('Zoom in'));
+    await tester.tap(find.byTooltip('Collapse jeepney panel'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Zoom out'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Reset to Boac area'));
-    await tester.pumpAndSettle();
+
     expect(tester.takeException(), isNull);
   });
 
@@ -155,6 +152,7 @@ void main() {
     final repository = TestRepository();
     await tester.pumpWidget(
       JeepLinkApp(
+        locationService: NoDeviceLocation(),
         repository: repository,
         tileProviderFactory: MemoryTileProvider.new,
       ),

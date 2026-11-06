@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../domain/jeepney.dart';
 
@@ -20,7 +21,7 @@ class LocationFailure implements Exception {
   const LocationFailure(this.problem);
   final LocationProblem problem;
   String get message => switch (problem) {
-    LocationProblem.denied => 'Location permission was denied. Retry when ready, or choose a point on the map.',
+    LocationProblem.denied => 'Location permission was denied. You can enable it in app settings or choose on the map.',
     LocationProblem.deniedForever => 'Location permission is blocked. Open app settings, choose Permissions → Location, and allow access while using the app. You can also choose on the map.',
     LocationProblem.disabled => 'Device location is turned off. Enable Location in device settings, then tap Retry. Manual map selection still works.',
     LocationProblem.timeout => 'A location could not be obtained in time. Try again with a clearer sky view, or choose on the map.',
@@ -30,6 +31,21 @@ class LocationFailure implements Exception {
     LocationProblem.unavailable =>
       'Device location is unavailable. Retry, or choose a point on the map.',
   };
+}
+
+abstract interface class LocationPromptStore {
+  Future<bool> wasRequested();
+  Future<void> markRequested();
+}
+
+/// Stores only a permission-prompt preference, never coordinates or an account ID.
+class SecureLocationPromptStore implements LocationPromptStore {
+  final _storage = const FlutterSecureStorage();
+  static const _key = 'abangque.location.permission-requested.v1';
+  @override
+  Future<bool> wasRequested() async => await _storage.read(key: _key) == 'true';
+  @override
+  Future<void> markRequested() => _storage.write(key: _key, value: 'true');
 }
 
 class DeviceFix {
@@ -58,11 +74,15 @@ abstract interface class DeviceLocationService {
 class ForegroundDeviceLocationService implements DeviceLocationService {
   ForegroundDeviceLocationService({
     GeolocatorPlatform? platform,
+    LocationPromptStore? permissionStore,
     this.timeout = const Duration(seconds: 20),
     DateTime Function()? clock,
   }) : _platform = platform ?? GeolocatorPlatform.instance,
-       _clock = clock ?? DateTime.now;
+       _clock = clock ?? DateTime.now,
+       _permissionStore = permissionStore ?? SecureLocationPromptStore();
   final GeolocatorPlatform _platform;
+  final LocationPromptStore _permissionStore;
+  bool _promptAttempted = false;
   final Duration timeout;
   final DateTime Function() _clock;
   int _generation = 0;
@@ -113,6 +133,13 @@ class ForegroundDeviceLocationService implements DeviceLocationService {
       );
       checkActive();
       if (permission == LocationPermission.denied) {
+        if (_promptAttempted || await _permissionStore.wasRequested()) {
+          throw const LocationFailure(LocationProblem.denied);
+        }
+        checkActive();
+        _promptAttempted = true;
+        await _permissionStore.markRequested();
+        checkActive();
         permission = await _platform.requestPermission();
         checkActive();
       }

@@ -12,13 +12,13 @@ import 'package:jeeplink/src/domain/passenger_route.dart';
 
 import 'fakes.dart';
 import 'widget_test.dart' show tab;
-import 'waiting_location_widget_test.dart' show tapText, tapMap;
+import 'waiting_location_widget_test.dart' show tapText, tapMap, options;
 
 // Native HTTP only in this explicitly enabled test. No test device secret enters Dart.
 class _NativeHttp extends HttpOverrides {}
 
 http.Client nativeClient() => HttpOverrides.runWithHttpOverrides(
-  () => IOClient(HttpClient()),
+  () => IOClient(HttpClient()..idleTimeout = Duration.zero),
   _NativeHttp(),
 );
 
@@ -98,6 +98,7 @@ void main() {
       expect(catalog.assignments.single.jeepneyId, 'SIM-GPS-001');
       await tester.pumpWidget(
         JeepLinkApp(
+          locationService: NoDeviceLocation(),
           repository: repo,
           routeRepository: _LoadedRoutes(catalog),
           apiMode: true,
@@ -120,10 +121,12 @@ void main() {
       await tester.tap(find.text('Find Jeepneys'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('vehicle-UNASSIGNED')), findsNothing);
+      await options(tester);
       await tapText(tester, 'Choose on Map');
       await tapMap(tester, offset: const Offset(-30, 20));
       await tapText(tester, 'Confirm Location');
       await tester.pump(const Duration(seconds: 5));
+      await tab(tester, 'Jeepneys');
       final card = find.byKey(const ValueKey('vehicle-SIM-GPS-001'));
       await tester.ensureVisible(card);
       await tester.tap(card);
@@ -152,16 +155,9 @@ void main() {
       expect(marker().point.latitude, closeTo(13.4463, .000001));
       await command('available');
       expect(marker().point.latitude, closeTo(13.4466, .000001));
-      expect(
-        tester
-            .widget<FlutterMap>(find.byType(FlutterMap))
-            .mapController!
-            .camera
-            .center
-            .latitude,
-        closeTo(13.4466, .000001),
-      );
       await command('stale');
+      await tester.tap(find.byTooltip('Expand full jeepney list'));
+      await tester.pumpAndSettle();
       expect(find.text('STALE / UNKNOWN'), findsWidgets);
       expect(find.textContaining('OFFLINE / STALE'), findsWidgets);
       final both = find.byTooltip('Show waiting point and selected jeepney');
@@ -180,6 +176,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey('marker-SIM-GPS-001')), findsOneWidget);
+      expect(
+        tester
+            .getBottomLeft(find.byKey(const ValueKey('marker-SIM-GPS-001')))
+            .dy,
+        lessThan(
+          tester.getTopLeft(find.byKey(const ValueKey('sheet-handle'))).dy,
+        ),
+      );
       expect(find.byType(PolylineLayer), findsNothing);
       await command('full');
       expect(find.text('STALE / UNKNOWN'), findsNothing);

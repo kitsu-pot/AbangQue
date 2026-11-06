@@ -93,6 +93,7 @@ void main() {
       RepaintBoundary(
         key: boundaryKey,
         child: JeepLinkApp(
+          locationService: NoDeviceLocation(),
           repository: DemoJeepneyRepository(
             clock: () => DateTime.utc(2026, 10, 31),
           ),

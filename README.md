@@ -9,11 +9,14 @@ server-revoked logout are implemented. **Continue as Guest** keeps transportatio
 information public. Offline DEMO remains guest-only. See
 [authentication setup and security](docs/AUTHENTICATION.md) before running accounts.
 
-Passengers, including guests, can optionally confirm a waiting point using one
-foreground device reading or a tap on OpenStreetMap. The blue pin is session-only,
+Find Jeepneys opens a full-screen OpenStreetMap experience with floating route
+controls and a draggable jeepney sheet. It requests one foreground location reading;
+denial never blocks results. Guests can also choose a waiting point manually. The blue pin is session-only,
 can be changed/cleared, and is never uploaded to the backend or saved to an account.
 It is a reference, not a verified boarding point. See
 [waiting locations and phone verification](docs/WAITING_LOCATION.md).
+
+Current map interaction and Infinix checks: [full-screen map](docs/FULLSCREEN_MAP.md).
 
 ## Run and verify
 
@@ -60,8 +63,8 @@ DEMO records never become current availability or count as fresh device reports.
 **ETA is unavailable in both modes.** No arrival calculation, official routes,
 stops, schedules, fares or verified GPS hardware operation are supplied. The
 fictional pickup marker has been removed. The preset map center near Boac is
-not the passenger's location. Only Use My Location requests foreground permission;
-manual map selection and transportation browsing do not require it.
+not the passenger's location. Find Jeepneys checks foreground permission and requests it once if needed.
+My Location requests a new reading; manual selection remains permission-free.
 
 API is the default, reading GET /api/jeepneys and the route catalog at
 GET /api/routes. Ordinary API mode polls vehicles every 30 seconds and

@@ -4,26 +4,24 @@ Implemented 2026-11-02. Checkpoint `aa6fd70` preserves the preceding GPS-simulat
 and jeepney-details phase. No backend code, schema or existing database records
 were changed for waiting locations.
 
-## Passenger flow
+## Passenger flow (updated 2026-11-06)
 
-Choose a municipality direction and Find Jeepneys as before. The optional **Your
-waiting location** glass panel appears on Home, Map and Jeepneys. Browsing remains
-available without choosing a point or signing in. Empty registered-route catalogs
-stay empty: choosing a location never creates a route or assigns a vehicle.
+Find Jeepneys now opens the full-screen map and requests one foreground device
+reading. Successful readings become the session reference pin without a separate
+confirmation screen. An existing manually selected point is preserved. Permission
+is optional; failure leaves route results and the map usable. Dropdown changes,
+tab navigation, refresh and returning from the background do not acquire location.
+See [FULLSCREEN_MAP.md](FULLSCREEN_MAP.md) for current interaction and phone checks.
 
-- **Use My Location** opens a preview and requests one foreground device reading.
-  Check the blue pin, coordinates, device measurement time and estimated accuracy,
-  then press **Confirm Location**. Permission is requested only after this action.
-- **Choose on Map** opens the same OpenStreetMap picker without asking permission.
-  Tap anywhere on the map to place/reposition the pin; pan and zoom as needed.
-  This implementation uses tapping, not dragging the pin. Confirm commits the
-  draft; Cancel or Android Back leaves the previous confirmed point unchanged.
-- **Change Location** reopens the confirmed point as a draft. Use My Location can
-  also replace it after confirmation. **Clear Location** removes it immediately.
-- **View waiting point on map** opens Map. Its blue person marker is separate from
-  jeepney bus markers. Select a jeepney, then use **Show waiting point and selected
-  jeepney** (fit-screen icon) to frame both. Updates continue to frame both until
-  a manual map gesture or another centering action. No connecting route is drawn.
+- **My Location** on Map explicitly requests a new reading, replacing the selected
+  point on success. It does not continuously follow the passenger.
+- **Waiting location options** (three-dot menu) shows accuracy, measurement/source
+  information, the full failure message and settings actions when appropriate.
+- **Choose on Map / Change Location** opens the existing tap-based picker without
+  requiring permission. Confirm commits the draft; Cancel/Back preserves the old
+  point. The optional **Use My Location** preview remains in this secondary menu.
+- **Clear Location** removes the point. The map's fit-screen control shows the
+  waiting point and selected jeepney together. No connecting road path is drawn.
 
 The initial Boac map view is only an area reference. A chosen point is **not a
 verified stop, terminal, safe boarding place, or promise that a jeepney passes or
@@ -37,11 +35,11 @@ seat counts, operating routes or boarding guarantees are generated.
 manualMap source, selection time, optional device measurement time/accuracy, and
 mock-reading disclosure. `isVerifiedBoardingPoint` is always false. The
 `WaitingLocationController` is memory-only, owned by the app composition root.
-The picker owns an unconfirmed draft. The device-service interface is injectable
+The controller also owns cancellable one-reading acquisition. The manual picker owns an unconfirmed draft. The device-service interface is injectable
 for tests; presentation uses the existing glass components and OSM map.
 
 There is **no waiting-location repository, HTTP write, PostgreSQL table, account
-field, preference, secure-storage entry, location log or history**. A point lasts
+field, coordinate preference, coordinate secure-storage entry, location log or history**. A point lasts
 only for this app session, survives tab/route changes, and clears on explicit
 clear, process restart, login/account change, logout or session expiry. It is not
 restored with a saved account session. Signing in while a picker is open cannot
@@ -67,6 +65,12 @@ explicitly excludes background location and foreground-service permissions from
 the merged manifest. No location notification/foreground-service configuration
 is used. Release cleartext policy and existing debug-only HTTP exceptions remain
 unchanged.
+
+A single secure-storage boolean records that the system permission prompt has been
+attempted. It contains no account or position data and survives app restarts. After
+denial, subsequent requests check permission but do not prompt again: use Android
+app settings to grant access, then My Location. A storage failure fails closed and
+leaves manual selection available. Existing granted permission needs no prompt.
 
 After permission, the service uses a short-lived position subscription solely
 to allow cancellation: it accepts one reading and immediately cancels. Acquisition
@@ -165,11 +169,12 @@ For an Android emulator the host API alias is `http://10.0.2.2:3000`, not the
 physical-phone URL. OSM tiles need phone/emulator internet access in either mode.
 Production API origins still require HTTPS.
 
-1. Enter as Guest. Verify no location prompt on startup or route browsing.
+1. Enter as Guest. Verify no prompt on startup or dropdown changes. Find Jeepneys
+   triggers the permission check and opens Map. Denial must not block results.
 2. Choose on Map, tap/reposition, confirm, switch tabs, change/cancel, then clear.
    Check navigation/gesture areas and larger Android font/display settings.
-3. Use My Location; allow foreground precise access. Check coordinates against
-   the actual place, estimated accuracy and blue preview, then confirm. Ensure
+3. Tap Find Jeepneys (or My Location); allow foreground precise access. Check coordinates against
+   the actual place, estimated accuracy and blue reference pin. Automatic detection needs no separate confirmation. Ensure
    location acquisition stops; it must not restart when navigating tabs.
 4. Repeat with approximate access, denial, permanent denial and Location switched
    off. Check settings return, explicit Retry, and manual fallback. Try poor

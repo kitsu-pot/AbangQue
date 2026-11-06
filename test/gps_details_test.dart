@@ -67,6 +67,7 @@ void main() {
           RepaintBoundary(
             key: boundary,
             child: JeepLinkApp(
+              locationService: NoDeviceLocation(),
               repository: repo,
               routeRepository: routes,
               apiMode: true,

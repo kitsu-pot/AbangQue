@@ -90,7 +90,7 @@ class GuideScreen extends StatelessWidget {
             ),
             const _Question(
               title: 'Does the app use my location?',
-              answer: 'Only when you tap Use My Location. One foreground device reading is shown for your confirmation. You can instead choose on the map without permission. The blue passenger pin is a session-only waiting reference, not a verified boarding point. No background tracking or ETA is provided.',
+              answer: 'Find Jeepneys requests one foreground device reading and shows a blue pin. My Location refreshes it on request. Permission is optional; after denial use app settings or choose on the map. The blue passenger pin is a session-only waiting reference, not a verified boarding point. No background tracking or ETA is provided.',
             ),
           ],
         ),

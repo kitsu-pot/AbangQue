@@ -443,3 +443,22 @@ provider. Foreground-only geolocator acquisition stops after one fix, timeout,
 cancel or app backgrounding; mock and low-accuracy readings are disclosed.
 See [WAITING_LOCATION.md](WAITING_LOCATION.md) for architecture, privacy, checks
 and exact Infinix verification instructions. Physical-phone validation is pending.
+
+
+## 18. Full-screen route map (2026-11-06)
+
+Checkpoint tag `checkpoint/map-redesign-2026-11-06` preserves commit `84ba388`.
+Find Jeepneys now opens the full-size map and performs a foreground permission
+check followed by one reading. This explicitly supersedes the earlier rule that
+only Use My Location initiates acquisition. Dropdown changes do not initiate it.
+Existing manual waiting points are preserved. Denial is non-blocking and a secure
+boolean remembers prompt attempts across launches, preventing repeated dialogs.
+No coordinates are stored or uploaded; account-change and background cancellation
+remain enforced. Manual tap/confirm/change/clear is available in the location menu.
+
+Map uses the existing OSM component with floating route editing, My Location,
+source labels, visible attribution and a collapsed/partial/expanded jeepney sheet.
+The sheet keeps collapse controls reachable; selected vehicle reports follow the
+existing controller and stale semantics. The list tab remains available. No backend,
+schema, admin, firmware, ETA or operating-route data is added. See
+[FULLSCREEN_MAP.md](FULLSCREEN_MAP.md). Phone performance remains unverified.

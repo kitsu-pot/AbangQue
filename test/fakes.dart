@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import 'package:jeeplink/src/location/device_location_service.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -72,4 +75,17 @@ class TestRouteRepository implements RouteRepository {
     if (fail) throw StateError('Test route service unavailable');
     return catalog;
   }
+}
+
+/// Native permission/sensor behavior is tested separately through its adapter.
+class NoDeviceLocation implements DeviceLocationService {
+  @override
+  Future<DeviceFix> locate() async =>
+      throw const LocationFailure(LocationProblem.unavailable);
+  @override
+  void cancel() {}
+  @override
+  Future<bool> openAppSettings() async => false;
+  @override
+  Future<bool> openLocationSettings() async => false;
 }

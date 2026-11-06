@@ -261,7 +261,8 @@ class _WaitingLocationPickerState extends State<WaitingLocationPicker>
                                 : 'Retry location',
                           ),
                         ),
-                        if (_error?.problem == LocationProblem.deniedForever)
+                        if (_error?.problem == LocationProblem.deniedForever ||
+                            _error?.problem == LocationProblem.denied)
                           TextButton(
                             onPressed: () => _settings(true),
                             child: const Text('Open app settings'),

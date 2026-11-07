@@ -25,6 +25,19 @@ async function passwordWork(action) {
   try { return await action(); } finally { activeHashes--; }
 }
 
+export function requirePassenger({ repository, config }) {
+  return async (req, res, next) => {
+    if (config.NODE_ENV === 'production' && !req.secure) return res.status(403).json({ error: 'HTTPS_REQUIRED' });
+    const match = tokenPattern.exec(req.headers.authorization ?? '');
+    if (!match) return res.status(401).json({ error: 'SESSION_INVALID' });
+    req.tokenHash = hashToken(match[1]);
+    const session = await repository.session(req.tokenHash);
+    if (!session) return res.status(401).json({ error: 'SESSION_INVALID' });
+    if (session.role !== 'PASSENGER') return res.status(403).json({ error: 'PASSENGER_REQUIRED' });
+    req.passenger = session; next();
+  };
+}
+
 export function passengerAuthRouter({ repository, config }) {
   const router = Router();
   const limit = max => rateLimit({ windowMs: 15 * 60 * 1000, limit: max,
@@ -52,12 +65,7 @@ export function passengerAuthRouter({ repository, config }) {
     if (!match) return res.status(401).json({ error: 'SESSION_INVALID' });
     req.tokenHash = hashToken(match[1]); next();
   };
-  const passenger = async (req, res, next) => {
-    const session = await repository.session(req.tokenHash);
-    if (!session) return res.status(401).json({ error: 'SESSION_INVALID' });
-    if (session.role !== 'PASSENGER') return res.status(403).json({ error: 'PASSENGER_REQUIRED' });
-    req.passenger = session; next();
-  };
+  const passenger = requirePassenger({ repository, config });
   router.post('/register', attempts, ...body, validate(registration), async (req, res) => {
     const token = newToken();
     const passwordHash = await passwordWork(() => argon2.hash(req.input.password, passwordOptions));

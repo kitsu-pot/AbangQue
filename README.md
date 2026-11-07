@@ -9,6 +9,11 @@ server-revoked logout are implemented. **Continue as Guest** keeps transportatio
 information public. Offline DEMO remains guest-only. See
 [authentication setup and security](docs/AUTHENTICATION.md) before running accounts.
 
+Signed-in passengers can save registered directions with the map heart and reopen
+them from Home. Guests receive an optional sign-in prompt; no guest or DEMO
+favorites are saved. Setup, API contracts and exact Infinix checks are in
+[Favorite Routes](docs/FAVORITE_ROUTES.md). Apply migration 004 and restart the backend.
+
 Find Jeepneys opens a full-screen OpenStreetMap experience with floating route
 controls and a draggable jeepney sheet. It requests one foreground location reading;
 denial never blocks results. Guests can also choose a waiting point manually. The blue pin is session-only,
@@ -43,8 +48,11 @@ No device/database credentials belong in Flutter or dart-define.
 - Home: municipality From/To selection, swap and Find Jeepneys as the main action.
 - Map and Jeepneys: shared journey selection; results require an explicit registered
   route and assignments. Global All/Available filters are removed.
-- Current API and offline DEMO: **No registered routes available yet.** Existing
-  vehicle records are unassigned and hidden from route results and map markers.
+- The registered-route table starts empty: **No registered routes available yet.**
+  No operating directions are seeded. Offline DEMO stays empty; the explicitly
+  enabled GPS simulator has its own labeled, unsaveable test direction.
+- Favorites: account-scoped save/remove, exact-direction reopening, refresh/retry
+  and unavailable-route states; no extra navigation tab.
 - Future assigned results: route-scoped ID/name search, report cards, details,
   source/status labels, timestamps and last coordinates.
 - Guide: English explanations of direction-specific routes and manual reports.
@@ -82,6 +90,7 @@ Repository/controller/UI boundaries remain intact:
 - lib/src/config: compile-time data mode, secure API origin, map configuration.
 - lib/src/data: separate API and offline demo repositories.
 - lib/src/domain: immutable vehicle/status and route/assignment models, repository contracts.
+- lib/src/favorites: authenticated API repository, account-scoped state and glass UI.
 - lib/src/location: session-only waiting state, cancellable foreground acquisition,
   permission/error handling and reusable picker/panel.
 - lib/src/presentation: controller, screens and reusable widgets.
@@ -100,7 +109,8 @@ Hero text and artwork use normal layout flow with no fixed-height text overlay.
 
 The pre-route-selection checkpoint is a2b3d22; the earlier pre-redesign checkpoint
 is 40e22a2, tag pre-abangque-glass.
-Backend code/schema, application IDs and API contracts are preserved. Android
+Existing vehicle/device APIs and application IDs are preserved. Account and
+favorite migrations are additive. Android
 debug-only local HTTP exceptions remain isolated; release/profile requires HTTPS.
 
 ## Visual review and physical acceptance

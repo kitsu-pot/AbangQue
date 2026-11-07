@@ -2,6 +2,24 @@
 
 Implemented 2026-10-31. Pre-change Git checkpoint: `a2b3d22` (completed glass UI).
 
+## Current integration (2026-11-07)
+
+The current API adapter reads GET /api/routes. Migration 004 adds an empty
+registered_routes table with stable UUIDs, ordered municipalities and an active
+flag. Only its active records are offered as registered routes. The separately
+opted-in local GPS simulator still exposes an explicitly DEMO direction and test
+assignment; it cannot be saved as a favorite. Offline DEMO has no registered routes.
+
+[Favorite Routes](FAVORITE_ROUTES.md) now lets authenticated passengers save those
+stable route IDs, restore them after login and reopen an exact direction after a
+fresh catalog check. Guests keep transport access and get an optional login prompt.
+No operating routes are seeded, existing demo jeepneys are not reassigned, and
+real jeepney assignments/admin registration tools remain future work.
+
+The sections below record the original 2026-10-31 route-selection phase. Their
+then-empty backend boundary was subsequently extended by the simulator and favorite
+phases described above; their original test counts are historical.
+
 ## Functional now
 
 Home starts with From municipality, To municipality, swap and Find Jeepneys.

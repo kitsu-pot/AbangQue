@@ -1,3 +1,5 @@
+import 'src/favorites/favorite_repository.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -34,6 +36,9 @@ void main() {
                 allowSimulation: config.enableGpsSimulation,
               )
             : const UnconfiguredRouteRepository(),
+        favoriteRepository: config.apiMode && !kIsWeb
+            ? ApiFavoriteRepository(baseUrl: config.baseUrl)
+            : null,
         authController: AuthController(
           repository: config.apiMode && !kIsWeb
               ? ApiPassengerAuthRepository(baseUrl: config.baseUrl)

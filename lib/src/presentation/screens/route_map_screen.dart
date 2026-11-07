@@ -26,7 +26,11 @@ class RouteMapScreen extends StatefulWidget {
     required this.onDetails,
     required this.mapConfig,
     this.tileProviderFactory,
+    this.favoriteButton,
+    this.onRefresh,
   });
+  final Widget? favoriteButton;
+  final VoidCallback? onRefresh;
   final JeepneyController controller;
   final WaitingLocationController waiting;
   final VoidCallback onFind, onLocate, onWaitingOptions;
@@ -177,13 +181,17 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                             ),
                           ),
                         ),
+                        if (widget.favoriteButton != null)
+                          widget.favoriteButton!,
                         IconButton(
                           tooltip: modeText(
                             context,
                             'Refresh demo',
                             'Refresh API',
                           ),
-                          onPressed: c.refreshing ? null : c.refresh,
+                          onPressed: c.refreshing
+                              ? null
+                              : (widget.onRefresh ?? c.refresh),
                           icon: const Icon(Icons.refresh_rounded),
                         ),
                         IconButton(
@@ -426,7 +434,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                               if (c.error != null) ...[
                                 const Text('Unable to update the fleet'),
                                 TextButton(
-                                  onPressed: c.refresh,
+                                  onPressed: widget.onRefresh ?? c.refresh,
                                   child: const Text('Try again'),
                                 ),
                               ],

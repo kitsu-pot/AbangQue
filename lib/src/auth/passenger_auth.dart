@@ -62,23 +62,7 @@ class ApiPassengerAuthRepository implements PassengerAuthRepository {
     http.Client? client,
     this.timeout = const Duration(seconds: 10),
   }) : _client = client ?? http.Client() {
-    if (baseUrl.userInfo.isNotEmpty ||
-        baseUrl.hasQuery ||
-        baseUrl.hasFragment ||
-        !baseUrl.hasAuthority ||
-        (baseUrl.path.isNotEmpty && baseUrl.path != '/') ||
-        !(baseUrl.scheme == 'https' ||
-            (kDebugMode &&
-                baseUrl.scheme == 'http' &&
-                [
-                  '127.0.0.1',
-                  'localhost',
-                  '10.0.2.2',
-                ].contains(baseUrl.host)))) {
-      throw ArgumentError(
-        'Authentication requires HTTPS outside local debug builds.',
-      );
-    }
+    validatePassengerOrigin(baseUrl);
   }
   final Uri baseUrl;
   final http.Client _client;
@@ -219,4 +203,20 @@ class ApiPassengerAuthRepository implements PassengerAuthRepository {
 
   @override
   void dispose() => _client.close();
+}
+
+void validatePassengerOrigin(Uri baseUrl) {
+  if (baseUrl.userInfo.isNotEmpty ||
+      baseUrl.hasQuery ||
+      baseUrl.hasFragment ||
+      !baseUrl.hasAuthority ||
+      (baseUrl.path.isNotEmpty && baseUrl.path != '/') ||
+      !(baseUrl.scheme == 'https' ||
+          (kDebugMode &&
+              baseUrl.scheme == 'http' &&
+              ['127.0.0.1', 'localhost', '10.0.2.2'].contains(baseUrl.host)))) {
+    throw ArgumentError(
+      'Authentication requires HTTPS outside local debug builds.',
+    );
+  }
 }

@@ -1,3 +1,6 @@
+import 'favorites/favorite_controller.dart';
+import 'favorites/favorite_repository.dart';
+import 'favorites/favorite_widgets.dart';
 import 'config/data_config.dart';
 import 'auth/auth_controller.dart';
 import 'auth/auth_screens.dart';
@@ -35,9 +38,11 @@ class JeepLinkApp extends StatefulWidget {
     this.tileProviderFactory,
     this.apiMode = false,
     this.authController,
+    this.favoriteRepository,
     this.locationService,
     this.routeRepository = const UnconfiguredRouteRepository(),
   });
+  final FavoriteRepository? favoriteRepository;
   final DeviceLocationService? locationService;
   final JeepneyRepository repository;
   final AuthController? authController;
@@ -52,6 +57,10 @@ class JeepLinkApp extends StatefulWidget {
 
 class _JeepLinkAppState extends State<JeepLinkApp> {
   final _waiting = WaitingLocationController();
+  late final _favorites = FavoriteController(
+    auth: widget.authController,
+    repository: widget.favoriteRepository,
+  );
   late final _locationService =
       widget.locationService ?? ForegroundDeviceLocationService();
   String? _accountId;
@@ -83,6 +92,7 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
     _locationService.cancel();
     _waiting.dispose();
     _controller.dispose();
+    _favorites.dispose();
     widget.authController?.dispose();
     unawaited(widget.repository.dispose());
     super.dispose();
@@ -102,6 +112,7 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
   );
   Widget _shell() => _PassengerShell(
     controller: _controller,
+    favorites: _favorites,
     mapConfig: widget.mapConfig,
     tileProviderFactory: widget.tileProviderFactory,
     authController: widget.authController,
@@ -113,6 +124,7 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
 class _PassengerShell extends StatefulWidget {
   const _PassengerShell({
     required this.controller,
+    required this.favorites,
     required this.mapConfig,
     required this.waiting,
     required this.locationService,
@@ -120,6 +132,7 @@ class _PassengerShell extends StatefulWidget {
     this.authController,
   });
   final AuthController? authController;
+  final FavoriteController favorites;
   final WaitingLocationController waiting;
   final DeviceLocationService locationService;
   final JeepneyController controller;
@@ -189,6 +202,79 @@ class _PassengerShellState extends State<_PassengerShell>
           ),
         ),
       ),
+    );
+  }
+
+  bool _openingFavorite = false;
+
+  Future<void> _favoriteSignIn() async {
+    final choice = await showFavoriteSignIn(context);
+    final auth = widget.authController;
+    if (!mounted || choice == null || auth == null) return;
+    auth.clearError();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => AuthScreen(
+          controller: auth,
+          initialRegister: choice == FavoriteSignIn.register,
+          returnToJourney: true,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleFavorite(PassengerRoute route) async {
+    if (!widget.favorites.signedIn) {
+      await _favoriteSignIn();
+      return;
+    }
+    await widget.favorites.toggle(route);
+    if (!mounted) return;
+    final error =
+        widget.favorites.error ??
+        (!widget.favorites.signedIn ? widget.authController?.error : null);
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  Future<void> _openFavorite(PassengerRoute route) async {
+    if (_openingFavorite || !widget.favorites.signedIn) return;
+    final account = widget.authController?.user?.id;
+    setState(() => _openingFavorite = true);
+    final opened = await widget.controller.openFavorite(route.id);
+    if (!mounted) return;
+    setState(() => _openingFavorite = false);
+    if (widget.authController?.user?.id != account) return;
+    if (opened) {
+      _findOnMap();
+    } else {
+      unawaited(widget.favorites.refresh());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.controller.routesError ?? 'This route is no longer available. Your favorite can still be removed.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      widget.controller.refresh(),
+      widget.favorites.refresh(),
+    ]);
+  }
+
+  Widget? _favoriteHeart() {
+    final route = widget.controller.selectedRoute;
+    if (route == null || route.isDemo) return null;
+    return FavoriteHeart(
+      controller: widget.favorites,
+      route: route,
+      onTap: () => _toggleFavorite(route),
     );
   }
 
@@ -268,7 +354,11 @@ class _PassengerShellState extends State<_PassengerShell>
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: Listenable.merge([widget.controller, widget.waiting]),
+    animation: Listenable.merge([
+      widget.controller,
+      widget.waiting,
+      widget.favorites,
+    ]),
     builder: (context, _) => GlassBackdrop(
       child: Scaffold(
         appBar: _tab == 1
@@ -336,9 +426,7 @@ class _PassengerShellState extends State<_PassengerShell>
 
                   IconButton(
                     tooltip: modeText(context, 'Refresh demo', 'Refresh API'),
-                    onPressed: widget.controller.refreshing
-                        ? null
-                        : widget.controller.refresh,
+                    onPressed: widget.controller.refreshing ? null : _refresh,
                     icon: widget.controller.refreshing
                         ? const SizedBox(
                             width: 22,
@@ -355,6 +443,8 @@ class _PassengerShellState extends State<_PassengerShell>
               ),
         body: _tab == 1
             ? RouteMapScreen(
+                favoriteButton: _favoriteHeart(),
+                onRefresh: _refresh,
                 controller: widget.controller,
                 waiting: widget.waiting,
                 onFind: _findOnMap,
@@ -368,7 +458,7 @@ class _PassengerShellState extends State<_PassengerShell>
                 top: false,
                 bottom: false,
                 child: RefreshIndicator(
-                  onRefresh: widget.controller.refresh,
+                  onRefresh: _refresh,
                   child: SingleChildScrollView(
                     key: const ValueKey('page-scroll'),
                     controller: _scrollController,
@@ -393,7 +483,7 @@ class _PassengerShellState extends State<_PassengerShell>
                                 title: 'Unable to update the fleet',
                                 message: widget.controller.error!,
                                 action: FilledButton(
-                                  onPressed: widget.controller.refresh,
+                                  onPressed: _refresh,
                                   child: const Text('Try again'),
                                 ),
                               ),
@@ -459,6 +549,13 @@ class _PassengerShellState extends State<_PassengerShell>
 
   Widget _page() => switch (_tab) {
     0 => HomeScreen(
+      favorites: FavoriteSection(
+        controller: widget.favorites,
+        onSignIn: _favoriteSignIn,
+        onOpen: _openFavorite,
+        onRemove: _toggleFavorite,
+        opening: _openingFavorite,
+      ),
       controller: widget.controller,
       onFind: _findOnMap,
       waitingPanel: TextButton(

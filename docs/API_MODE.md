@@ -108,8 +108,8 @@ with the desired defines; hot reload does not change compile-time configuration.
 ## Verify in Flutter
 
 1. Home shows API mode, From/To municipality selectors, swap and Find Jeepneys.
-   The current backend has no route endpoint or assignments, so the app shows
-   **No registered routes available yet.** even if GET /api/jeepneys returns
+   GET /api/routes reads active registered records. Its table starts empty, so
+   **No registered routes available yet.** is expected even if GET /api/jeepneys returns
    two historical records. There are no global All/Available filters.
 2. Choose two different municipalities and tap Find Jeepneys. No route is
    invented, no existing demo is assigned, and no fleet cards/markers appear.
@@ -117,7 +117,7 @@ with the desired defines; hot reload does not change compile-time configuration.
 3. Map still renders OpenStreetMap geography and controls, with no unassigned
    vehicle markers. No route lines, terminals or stops are inferred.
 4. Tap refresh or pull down. Vehicle reads still poll every 30 seconds; manual
-   refresh also reloads the route-catalog abstraction (currently empty).
+   refresh also reloads the route catalog and signed-in favorites.
 5. Stop the backend and refresh. After at most the 10-second request timeout,
    an error and Try again appear. Restart and retry; no simulator substitutes.
 6. Future explicit route assignments will enable route-specific cards/details:
@@ -177,3 +177,11 @@ Local GPS movement testing is separately opt-in; see [GPS_SIMULATOR.md](GPS_SIMU
 The passenger route adapter now reads GET /api/routes (empty normally), and the
 vehicle adapter expires stale status between polls using backend freshness metadata.
 Neither adapter sends device credentials or device updates.
+
+## Favorite Routes
+
+Apply migration 004 and restart the backend before using the new Home favorites
+card and selected-route heart. Favorites require passenger login and reference
+registered route UUIDs; no DEMO or guest favorites are persisted. See
+[FAVORITE_ROUTES.md](FAVORITE_ROUTES.md) for endpoints, unavailable routes and the
+physical-phone acceptance checklist. No operating routes are seeded.

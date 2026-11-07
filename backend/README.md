@@ -1,4 +1,4 @@
-# JeepLink Phase 2 backend
+# AbangQue backend
 
 Node.js 24, Express 5, JavaScript ES modules, PostgreSQL. Flutter now has a separate
 passenger API adapter with selectable offline demo mode. Nothing is deployed. No ESP32, GPS, official route, or real
@@ -225,8 +225,8 @@ validation.js, security.js, and presenter.js separate input validation,
 credential hashing, and freshness/presentation. migrations/ contains schema;
 seeds/ contains only optional demo fixtures; scripts/ contains local admin tools.
 
-The Flutter model now permits unknown passengerCount and capacity; these are
-never invented from FULL/AVAILABLE. Its API adapter supports nullable positions,
+The Flutter model has no numerical seat or occupancy fields. Its API adapter
+supports nullable positions,
 unknown/stale status, source labels and null ETA. Historical DEMO fixtures are
 explicitly labeled and never counted as current availability.
 
@@ -241,14 +241,15 @@ development only. The rate limiter is per IP in memory; it resets on restart.
 Keep trust proxy disabled until the actual proxy topology is configured; use a
 shared store and device-specific quotas if deploying multiple instances.
 
-## Database verification still needed
+## Database and hardware verification
 
-After installing PostgreSQL, run migrations twice, seed twice, check empty/demo
-reads, provision LAB-001, submit and read a fresh sample, test wrong/revoked tokens,
-duplicate and out-of-order samples, and wait past the offline threshold. Inspect
-the tables to confirm constraint enforcement and stored hashes. Real PostgreSQL
-integration tests, device firmware, GPS validation, ETA calculation, deployment,
-and live end-to-end Flutter verification are not completed by database-free checks.
+`npm run test:postgres` runs real PostgreSQL authentication, simulated-device and
+favorite-route HTTP tests in isolated temporary schemas. It requires the configured
+local development database and removes only its generated test schemas. Ordinary
+`npm test` remains database-free; its skipped integration cases run through that
+explicit command. `npm run test:gps:flutter` separately checks the Flutter/HTTP/SQL
+simulator path. Neither command verifies physical GPS hardware, road operation or
+phone performance. No deployment or real ETA calculation is implemented.
 
 References: [Express error handling](https://expressjs.com/en/5x/guide/error-handling/),
 [node-postgres parameterized queries](https://node-postgres.com/features/queries).
@@ -268,7 +269,28 @@ No account credentials are seeded. No admin login or password reset is implement
 
 Migration 003 adds an explicit simulated source to vehicles, credentials and updates.
 The existing authenticated device endpoint is reused. `GET /api/routes` returns an
-empty catalog normally and an explicitly DEMO test direction only when local
-simulation is enabled and the reserved test vehicle is provisioned. No route tables
-or admin management are implemented. Read [GPS_SIMULATOR.md](../docs/GPS_SIMULATOR.md)
+active registered catalog (initially empty), plus an explicitly DEMO test direction
+only when local simulation is enabled and the reserved test vehicle is provisioned.
+Migration 004 supplies route storage; admin management is not implemented. Read [GPS_SIMULATOR.md](../docs/GPS_SIMULATOR.md)
 for the exact opt-in guards, setup, commands, revocation and database/Flutter tests.
+
+
+## Favorite Routes (2026-11-07)
+
+Migration 004_favorite_routes.sql adds an empty registered_routes catalog and
+passenger_favorite_routes with stable UUID references, per-passenger uniqueness,
+account deletion cascade and unavailable-route retention. No operating directions
+are seeded; no real jeepney assignments are created. GET /api/routes reads active
+registered records alongside the separately gated simulator catalog.
+
+Authenticated PASSENGER only: GET /api/favorites, PUT /api/favorites/:routeId,
+DELETE /api/favorites/:routeId. Identity always comes from the live session;
+client-supplied user IDs are rejected. PUT/DELETE are idempotent, production requires
+HTTPS, and public transport reads remain guest-accessible. No new environment
+variables are needed. Run npm run migrate and restart npm start.
+
+See [Favorite Routes](../docs/FAVORITE_ROUTES.md) for contracts and the Infinix
+checklist. npm run test:postgres now includes real registration/login/favorites
+HTTP tests in isolated PostgreSQL schemas, alongside existing auth/GPS regressions.
+Earlier database-free verification limitations above describe those checks only;
+physical GPS/device operation and deployment remain unverified.

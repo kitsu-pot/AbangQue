@@ -8,8 +8,9 @@ API mode offers email/password sign-in, registration, Continue as Guest, profile
 view/edit and sign-out. Registration collects only full name, email, password and
 confirmation. The confirmation is checked locally and not sent/stored. Profiles
 allow editing the full name; email remains the sign-in identifier and is read-only.
-No password reset, email verification, email-change flow, admin account, saved
-routes or other personalized feature is implemented.
+No password reset, email verification, email-change flow or admin account is
+implemented. The later [Favorite Routes phase](FAVORITE_ROUTES.md) adds the first
+account-scoped saved-journey feature using these same passenger sessions.
 
 All transportation information remains public. Continue as Guest opens the same
 Home, Map, Jeepneys and Guide destinations. Use the account icon in the app bar to
@@ -17,8 +18,9 @@ open a profile or return to sign-in. Offline DEMO remains guest-only, never a fa
 authentication service. Browser previews are also guest-only; mobile credential
 storage is not replaced by browser local storage.
 
-Existing route limitations remain: no registered backend routes or assignments
-exist yet. Authentication does not fabricate routes, GPS positions or ETA.
+Route migration 004 now provides an empty registered-route catalog for favorites.
+No operating routes are seeded or real jeepney assignments supplied. Authentication
+does not fabricate routes, GPS positions or ETA.
 
 ## Architecture
 

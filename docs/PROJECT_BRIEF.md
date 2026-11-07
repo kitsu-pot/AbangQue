@@ -462,3 +462,28 @@ The sheet keeps collapse controls reachable; selected vehicle reports follow the
 existing controller and stale semantics. The list tab remains available. No backend,
 schema, admin, firmware, ETA or operating-route data is added. See
 [FULLSCREEN_MAP.md](FULLSCREEN_MAP.md). Phone performance remains unverified.
+
+
+## 19. Passenger Favorite Routes (2026-11-07)
+
+Checkpoint `checkpoint/favorites-2026-11-07` preserves `16953e9`. Authenticated
+passengers can save/remove registered route IDs with the map heart, see them on
+Home, reopen an exact direction after rechecking the catalog, and restore them
+through the same PostgreSQL account after session recovery or a new login. Guest
+prompts offer Log In, Create Account and Not Now; returning from authentication
+keeps the journey and requires an explicit save. No guest favorites are stored.
+
+Migration 004 adds the minimal empty registered_routes catalog and account-scoped
+passenger_favorite_routes table. This supersedes earlier statements that there is
+no route table. It was applied locally; no operating routes were seeded. The public
+catalog reads active stored routes and preserves the separately gated simulator.
+DEMO directions cannot be saved. Real jeepney assignments, administrator route
+verification/management and the admin dashboard remain future work.
+
+Favorites reuse live passenger sessions, backend role checks, secure device token
+storage and production HTTPS. Unavailable/deleted routes retain removable labels;
+opening rechecks availability. Duplicate saves are idempotent, account changes
+clear private state and late responses cannot restore it. No coordinates, waiting
+locations, device credentials, seat counts or ETA are added to favorites. See
+[FAVORITE_ROUTES.md](FAVORITE_ROUTES.md) for contracts, observed tests and the exact
+physical-phone checklist. Phone performance/interaction remains unverified.

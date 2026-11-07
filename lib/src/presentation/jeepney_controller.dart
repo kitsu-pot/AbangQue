@@ -102,6 +102,24 @@ class JeepneyController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> openFavorite(String routeId) async {
+    final request = _routesRequest + 1;
+    await _loadRoutes();
+    if (_disposed || request != _routesRequest || routesError != null) {
+      return false;
+    }
+    final route = routes.where((r) => r.id == routeId && !r.isDemo).firstOrNull;
+    if (route == null) return false;
+    origin = route.origin;
+    destination = route.destination;
+    journeySubmitted = true;
+    _selectedRouteId = route.id;
+    query = '';
+    selectedJeepneyId = null;
+    notifyListeners();
+    return true;
+  }
+
   void selectRoute(String id) {
     if (!matchingRoutes.any((r) => r.id == id)) return;
     _selectedRouteId = id;

@@ -1,4 +1,5 @@
 import express from 'express';
+import { favoriteRouter } from './favorite-routes.js';
 import { simulationEnabled, simulatorCatalog } from './simulation.js';
 import { passengerAuthRouter } from './passenger-auth.js';
 import helmet from 'helmet';
@@ -7,7 +8,7 @@ import { parseToken, matchesSecret } from './security.js';
 import { jeepneyId, updateSchema, timestampAllowed } from './validation.js';
 import { presentJeepney } from './presenter.js';
 
-export function createApp({ repository, passengerRepository, config, clock = Date.now }) {
+export function createApp({ repository, passengerRepository, favoriteRepository, config, clock = Date.now }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY === 'loopback' ? 'loopback' : false);
@@ -22,11 +23,14 @@ export function createApp({ repository, passengerRepository, config, clock = Dat
     }
   });
   if (passengerRepository) app.use('/api/auth', passengerAuthRouter({ repository: passengerRepository, config }));
+  if (passengerRepository && favoriteRepository) app.use('/api/favorites', favoriteRouter({ repository: favoriteRepository, passengerRepository, config }));
   const includeSimulated = simulationEnabled(config);
   app.get('/api/routes', async (_req, res) => {
     const vehicle = includeSimulated ? await repository.get('SIM-GPS-001', false, true) : null;
-    res.json({ data: vehicle?.source === 'simulated' ? simulatorCatalog() : { routes: [], assignments: [] },
-      meta: { simulationEnabled: includeSimulated, officialRoutesAvailable: false } });
+    const registered = favoriteRepository ? await favoriteRepository.catalog() : { routes: [], assignments: [] };
+    const demo = vehicle?.source === 'simulated' ? simulatorCatalog() : { routes: [], assignments: [] };
+    res.json({ data: { routes: [...registered.routes, ...demo.routes], assignments: [...registered.assignments, ...demo.assignments] },
+      meta: { simulationEnabled: includeSimulated, officialRoutesAvailable: registered.routes.length > 0 } });
   });
   const includeDemo = config.INCLUDE_DEMO === 'true';
   app.get('/api/jeepneys', async (_req, res) => {

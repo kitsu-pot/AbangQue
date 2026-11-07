@@ -79,8 +79,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key, required this.controller});
+  const AuthScreen({
+    super.key,
+    required this.controller,
+    this.initialRegister = false,
+    this.returnToJourney = false,
+  });
   final AuthController controller;
+  final bool initialRegister, returnToJourney;
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -91,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  bool _register = false;
+  late bool _register = widget.initialRegister;
   bool _hidePassword = true;
   bool _hideConfirm = true;
   @override
@@ -115,6 +121,9 @@ class _AuthScreenState extends State<AuthScreen> {
       password: _password.text,
       name: _register ? _name.text : null,
     );
+    if (mounted && widget.returnToJourney && widget.controller.user != null) {
+      Navigator.pop(context);
+    }
   }
 
   Widget _passwordField({bool confirm = false}) {
@@ -170,7 +179,12 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => GlassBackdrop(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.controller,
+    builder: (context, _) => _formContent(context),
+  );
+
+  Widget _formContent(BuildContext context) => GlassBackdrop(
     child: Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -329,7 +343,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       onPressed:
                           widget.controller.busy && !widget.controller.restoring
                           ? null
-                          : widget.controller.continueAsGuest,
+                          : () {
+                              widget.controller.continueAsGuest();
+                              if (widget.returnToJourney) {
+                                Navigator.pop(context);
+                              }
+                            },
                       child: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Text(

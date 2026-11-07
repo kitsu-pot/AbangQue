@@ -157,6 +157,35 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// Tokens stay inside the account/API boundary, never in presentation or preferences.
+  Future<T> authenticated<T>(Future<T> Function(String token) action) async {
+    final saved = _saved;
+    if (user == null ||
+        saved == null ||
+        saved.pendingLogout ||
+        !saved.expiresAt.isAfter(DateTime.now())) {
+      throw const AuthFailure(
+        'Please log in to access your favorites.',
+        unauthorized: true,
+      );
+    }
+    try {
+      return await action(saved.token);
+    } on AuthFailure catch (e) {
+      if (e.unauthorized && _saved?.token == saved.token) {
+        try {
+          await _forget();
+        } catch (_) {
+          /* Removed from memory even if storage fails. */
+        }
+        guest = true;
+        error = e.message;
+        _notify();
+      }
+      rethrow;
+    }
+  }
+
   Future<void> updateName(String name) async {
     final saved = _saved;
     if (busy || saved == null || user == null) return;

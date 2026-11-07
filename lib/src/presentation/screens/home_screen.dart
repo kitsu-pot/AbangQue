@@ -12,10 +12,11 @@ class HomeScreen extends StatelessWidget {
     required this.controller,
     required this.onFind,
     this.waitingPanel,
+    this.favorites,
   });
   final JeepneyController controller;
   final VoidCallback onFind;
-  final Widget? waitingPanel;
+  final Widget? waitingPanel, favorites;
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,6 +47,7 @@ class HomeScreen extends StatelessWidget {
       JourneySelector(controller: controller, onFind: onFind),
       const SizedBox(height: 20),
       JourneyState(controller: controller),
+      if (favorites != null) ...[const SizedBox(height: 20), favorites!],
       if (waitingPanel != null) ...[const SizedBox(height: 20), waitingPanel!],
       const SizedBox(height: 20),
       const GlassPanel(

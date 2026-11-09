@@ -113,7 +113,7 @@ class JourneySelector extends StatelessWidget {
         PassengerButton(
           onPressed:
               controller.validJourney &&
-                  !controller.routesLoading &&
+                  (!controller.routesLoading || controller.routes.isNotEmpty) &&
                   controller.routesError == null
               ? () {
                   controller.findJeepneys();
@@ -134,7 +134,7 @@ class JourneyState extends StatelessWidget {
   final JeepneyController controller;
   @override
   Widget build(BuildContext context) {
-    if (controller.routesLoading) {
+    if (controller.routesLoading && controller.routes.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(20),
         child: Center(
@@ -200,6 +200,8 @@ class JourneyState extends StatelessWidget {
           Text(
             controller.selectedRoute!.isDemo
                 ? 'SIMULATED / DEMO TEST DIRECTION'
+                : controller.offline
+                ? 'SAVED ROUTE · AVAILABILITY UNVERIFIED'
                 : 'REGISTERED ROUTE',
             style: const TextStyle(
               fontSize: 10,

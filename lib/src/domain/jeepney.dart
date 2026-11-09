@@ -25,7 +25,13 @@ class Jeepney {
     this.connectionStatus,
     this.reportedStatus,
     this.operatorName,
+    this.retrievedAt,
+    this.isCached = false,
+    this.lastReportedStatus,
   });
+  final DateTime? retrievedAt;
+  final bool isCached;
+  final OccupancyStatus? lastReportedStatus;
   final String id;
   final String name;
   final String? operatorName;
@@ -45,13 +51,15 @@ class Jeepney {
       source == DataSource.hardware && hasRecentTelemetry;
   bool get hasRecentTelemetry =>
       fromApi &&
+      !isCached &&
       source != DataSource.demo &&
       !isStale &&
       recordedAt != null &&
       lastSeenAt != null &&
       connectionStatus == 'ONLINE';
   OccupancyStatus get status {
-    if (isStale ||
+    if (isCached ||
+        isStale ||
         (fromApi && (source == DataSource.demo || !hasRecentTelemetry))) {
       return OccupancyStatus.unknown;
     }
@@ -70,8 +78,29 @@ class Jeepney {
     connectionStatus: 'OFFLINE',
     reportedStatus: reportedStatus,
     operatorName: operatorName,
+    retrievedAt: retrievedAt,
+    isCached: isCached,
+    lastReportedStatus: lastReportedStatus,
   );
-  String get connectivityLabel => !fromApi
+  Jeepney withRetrieval(DateTime? time, {bool cached = false}) => Jeepney(
+    id: id,
+    name: name,
+    position: position,
+    recordedAt: recordedAt,
+    lastSeenAt: lastSeenAt,
+    source: source,
+    fromApi: fromApi,
+    isStale: isStale,
+    connectionStatus: connectionStatus,
+    reportedStatus: reportedStatus,
+    operatorName: operatorName,
+    retrievedAt: time,
+    isCached: cached,
+    lastReportedStatus: lastReportedStatus,
+  );
+  String get connectivityLabel => isCached
+      ? 'UNVERIFIED · Last known location; availability may have changed'
+      : !fromApi
       ? 'DEMO · No device connection'
       : source == DataSource.demo
       ? 'Historical DEMO · No device connection'
@@ -83,8 +112,11 @@ class Jeepney {
       ? 'ONLINE · Simulated sender report is fresh'
       : 'ONLINE · Last device report is fresh';
 
-  String get statusLabel =>
-      isStale ? 'STALE / UNKNOWN' : status.name.toUpperCase();
+  String get statusLabel => isCached
+      ? 'CACHED / UNKNOWN'
+      : isStale
+      ? 'STALE / UNKNOWN'
+      : status.name.toUpperCase();
   String get sourceLabel => isSimulated
       ? 'API · SIMULATED / DEMO'
       : fromApi
@@ -92,7 +124,9 @@ class Jeepney {
             ? 'API · Historical DEMO'
             : 'API · Driver report')
       : 'DEMO · Offline simulation';
-  String get freshnessLabel => isSimulated
+  String get freshnessLabel => isCached
+      ? 'Cached report · Current availability unknown'
+      : isSimulated
       ? (hasRecentTelemetry
             ? 'Fresh SIMULATED report'
             : 'SIMULATED report outdated')

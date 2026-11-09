@@ -104,7 +104,7 @@ void main() {
     expect(catalog.routes.single.origin, Municipality.boac);
     expect(catalog.routes.single.destination, Municipality.mogpog);
     expect(catalog.routes.single.label, contains('DEMO'));
-    expect((await repo(status: 404).loadCatalog()).routes, isEmpty);
+    await expectLater(repo(status: 404).loadCatalog(), throwsFormatException);
     await expectLater(repo(status: 503).loadCatalog(), throwsFormatException);
   });
   test(

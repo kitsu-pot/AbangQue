@@ -72,9 +72,11 @@ prevent copying the credential data to another device. Storage failures never
 fall back to plain preferences or a fabricated signed-in state.
 
 On launch/resume the stored token is checked with GET /api/auth/me. A stored token
-alone does not establish login. Invalid/expired sessions are cleared. Network
-failure leaves account access unavailable and permits guest access; session
-recovery can be retried. A local expiry timer removes authenticated UI access;
+alone does not establish login. Invalid/expired sessions are cleared. A temporary
+network failure preserves an already server-verified in-memory identity and its
+expiry timer. A cold restart still requires server verification before restoring
+account UI; network failure retains the secure token and permits Guest access.
+Session recovery can be retried. Protected actions always require server confirmation. A local expiry timer removes authenticated UI access;
 the backend remains authoritative for all protected operations.
 
 Sign-out first writes an encrypted pending-logout marker, then calls the server.
@@ -222,3 +224,12 @@ HTTP and secure storage and do not prove native device-storage operation.
 Design references: [node-argon2](https://github.com/ranisalt/node-argon2),
 [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html),
 and [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage).
+
+## Offline public data (2026-11-09)
+
+[Offline handling](OFFLINE_HANDLING.md) adds a separate public transport cache.
+Credentials, profiles, favorites and precise waiting locations never enter it.
+Existing secure token storage, revocation, logout and HTTPS restrictions are
+unchanged. Previously loaded favorites remain only in the same account's memory
+session; they are cleared on account change/expiry/logout and never queued for
+later save/remove. Public cache access does not grant account permissions.

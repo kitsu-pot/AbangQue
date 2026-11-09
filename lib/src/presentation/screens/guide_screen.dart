@@ -86,7 +86,7 @@ class GuideScreen extends StatelessWidget {
             ),
             const _Question(
               title: 'What happens without a connection?',
-              answer: 'API mode shows an error and a retry action; it never silently switches to simulation. Offline DEMO is separately selected. OpenStreetMap tiles still need network access.',
+              answer: 'API mode can show saved public routes and last known locations for up to 24 hours. CACHED / UNKNOWN means current availability cannot be verified. Tap the connection label for received times and retry. Recovery is automatic while the app is open. The blue waiting pin is never saved. Offline DEMO stays separate, and map tiles may be missing without internet.',
             ),
             const _Question(
               title: 'Does the app use my location?',

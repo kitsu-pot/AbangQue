@@ -487,3 +487,30 @@ clear private state and late responses cannot restore it. No coordinates, waitin
 locations, device credentials, seat counts or ETA are added to favorites. See
 [FAVORITE_ROUTES.md](FAVORITE_ROUTES.md) for contracts, observed tests and the exact
 physical-phone checklist. Phone performance/interaction remains unverified.
+
+
+## 20. Offline and weak internet handling (2026-11-09)
+
+Checkpoint `checkpoint/offline-2026-11-09` preserves `f2589a7`. API mode now stores
+bounded, origin/simulation-scoped public route and vehicle snapshots in the
+application cache directory. GPS measurement, server receipt and application
+retrieval timestamps remain separate. A 24-hour fallback lifetime, file/record
+limits and at-most-once-per-minute disk writes are documented in
+[OFFLINE_HANDLING.md](OFFLINE_HANDLING.md). This supersedes older statements that
+all API rows/route selection are cleared after failed requests.
+
+Cached routes/assignments and last known markers remain available during an
+interruption, with current availability always CACHED / UNKNOWN and ETA unavailable.
+A compact map notice and receipt details use actual API results. Valid recovery
+replaces snapshots and retains an available selected route; HTTP/validation errors
+cannot invent route removal. Both datasets refresh with one app-owned timer,
+controlled backoff, single-flight reads and foreground lifecycle handling.
+
+The cache contains no precise passenger waiting point, account information,
+favorites or secrets. Already verified in-memory identity survives temporary
+session-check failure; cold login recovery still requires server verification.
+Favorites remain account-scoped memory only, with server-confirmed writes and no
+queue. No backend/schema change, operating routes, assignments, firmware or
+administration feature is introduced. The existing path_provider dependency is now
+explicitly imported for the public cache directory. Android physical verification
+is pending: adb reported no attached device during this task.

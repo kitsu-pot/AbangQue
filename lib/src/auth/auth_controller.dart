@@ -101,7 +101,8 @@ class AuthController extends ChangeNotifier {
       if (!_disposed && !guest) _accept(session, saved.token);
     } catch (e) {
       if (_disposed) return;
-      user = null;
+      // A failed network check is not proof that the verified session expired.
+      // Cold starts still have no user until the server verifies the stored token.
       if (e is AuthFailure && e.unauthorized) {
         try {
           await _forget();

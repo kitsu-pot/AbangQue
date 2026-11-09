@@ -84,7 +84,7 @@ void main() {
       routes.catalog = testRouteCatalog();
       await c.refresh();
       expect(c.routesError, isNull);
-      expect(c.filteredVehicles, isEmpty);
+      expect(c.filteredVehicles, hasLength(2));
       c.findJeepneys();
       expect(c.filteredVehicles, hasLength(2));
       routes.catalog = RouteCatalog();
@@ -126,20 +126,27 @@ void main() {
     },
   );
 
-  test('late route response cannot replace a newer refresh', () async {
-    final routes = _DelayedRoutes();
-    final repository = DemoJeepneyRepository();
-    final c = JeepneyController(repository, routeRepository: routes);
-    final refresh = c.refresh();
-    routes.calls[1].complete(RouteCatalog());
-    await refresh;
-    routes.calls[0].complete(testRouteCatalog());
-    await flush();
-    expect(c.routes, isEmpty);
-    expect(c.routesLoading, isFalse);
-    c.dispose();
-    await repository.dispose();
-  });
+  test(
+    'in-flight route refresh is shared and the next snapshot replaces it',
+    () async {
+      final routes = _DelayedRoutes();
+      final repository = DemoJeepneyRepository();
+      final c = JeepneyController(repository, routeRepository: routes);
+      final refresh = c.refresh();
+      expect(routes.calls, hasLength(1));
+      routes.calls.single.complete(testRouteCatalog());
+      await refresh;
+      expect(c.routes, hasLength(2));
+      final next = c.refresh();
+      expect(routes.calls, hasLength(2));
+      routes.calls.last.complete(RouteCatalog());
+      await next;
+      expect(c.routes, isEmpty);
+      expect(c.routesLoading, isFalse);
+      c.dispose();
+      await repository.dispose();
+    },
+  );
 
   test('catalog rejects duplicate IDs, invalid directions and dangling assignments', () {
     final route = testRouteCatalog().routes.first;

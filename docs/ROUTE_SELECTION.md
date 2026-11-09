@@ -2,6 +2,16 @@
 
 Implemented 2026-10-31. Pre-change Git checkpoint: `a2b3d22` (completed glass UI).
 
+## Offline extension (2026-11-09)
+
+Routes and vehicle reports now refresh together with controlled retry/backoff.
+Cached registered directions and explicit assignments remain usable during API
+failures, with unverified-route and CACHED / UNKNOWN vehicle labels. A failed request
+preserves the selected direction; a valid new catalog can remove it. No GPS-based
+inference or automatic DEMO fallback is introduced. See
+[OFFLINE_HANDLING.md](OFFLINE_HANDLING.md). Older descriptions of failure clearing
+and manual-only catalog refresh below record earlier implementation phases.
+
 ## Current integration (2026-11-07)
 
 The current API adapter reads GET /api/routes. Migration 004 adds an empty

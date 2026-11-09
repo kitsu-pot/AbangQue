@@ -1,3 +1,5 @@
+import '../data/public_cache/public_cache.dart';
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -10,6 +12,7 @@ class JeepneyController extends ChangeNotifier {
   JeepneyController(
     this._repository, {
     this.apiMode = false,
+    this.pollInterval,
     this._routeRepository = const UnconfiguredRouteRepository(),
   }) {
     unawaited(_loadRoutes());
@@ -36,10 +39,62 @@ class JeepneyController extends ChangeNotifier {
         }
       },
     );
+    _schedulePoll();
   }
 
   final JeepneyRepository _repository;
   final bool apiMode;
+  final Duration? pollInterval;
+  Timer? _pollTimer;
+  int _failures = 0;
+  bool _active = true;
+  Future<void>? _routePending;
+  PublicDataState? get fleetState => _repository is PublicDataSource
+      ? (_repository as PublicDataSource).state
+      : null;
+  PublicDataState? get routeState => _routeRepository is PublicDataSource
+      ? (_routeRepository as PublicDataSource).state
+      : null;
+  bool get managesConnectivity => fleetState != null || routeState != null;
+  bool get offline =>
+      apiMode &&
+      (fleetState?.offline == true ||
+          routeState?.offline == true ||
+          error != null ||
+          routesError != null);
+  bool get checkingConnection =>
+      fleetState?.attempted == false || routeState?.attempted == false;
+  bool get hasPublicSnapshot =>
+      fleetState?.hasSnapshot == true || routeState?.hasSnapshot == true;
+  bool get cacheWarning =>
+      fleetState?.cacheWriteFailed == true ||
+      routeState?.cacheWriteFailed == true;
+  String get connectionLabel => checkingConnection
+      ? (hasPublicSnapshot
+            ? 'Checking API · Saved information'
+            : 'Connecting to API')
+      : offline
+      ? (hasPublicSnapshot
+            ? 'Offline · Saved information'
+            : 'API unreachable · No saved information')
+      : _vehicles.any((v) => v.hasRecentTelemetry)
+      ? 'API reachable · Fresh reports received'
+      : 'API reachable · No fresh reports';
+  void _schedulePoll() {
+    _pollTimer?.cancel();
+    if (_disposed || !_active || pollInterval == null) return;
+    _pollTimer = Timer(
+      _failures == 0 ? pollInterval! : retryDelay(_failures),
+      () => unawaited(refresh()),
+    );
+  }
+
+  void setActive(bool active) {
+    _active = active;
+    _pollTimer?.cancel();
+    if (active && pollInterval != null) unawaited(refresh());
+  }
+
   late final StreamSubscription<List<Jeepney>> _subscription;
   List<Jeepney> _vehicles = const [];
   bool loading = true;
@@ -93,7 +148,11 @@ class JeepneyController extends ChangeNotifier {
   void editJourney() => _resetJourney();
 
   void findJeepneys() {
-    if (!validJourney || routesLoading || routesError != null) return;
+    if (!validJourney ||
+        (routesLoading && routes.isEmpty) ||
+        routesError != null) {
+      return;
+    }
     journeySubmitted = true;
     query = '';
     _selectedRouteId = matchingRoutes.length == 1
@@ -103,7 +162,7 @@ class JeepneyController extends ChangeNotifier {
   }
 
   Future<bool> openFavorite(String routeId) async {
-    final request = _routesRequest + 1;
+    final request = _routePending == null ? _routesRequest + 1 : _routesRequest;
     await _loadRoutes();
     if (_disposed || request != _routesRequest || routesError != null) {
       return false;
@@ -129,12 +188,12 @@ class JeepneyController extends ChangeNotifier {
 
   List<Jeepney> get journeyVehicles {
     final route = selectedRoute;
-    if (route == null || routesError != null || routesLoading) return const [];
+    if (route == null || routesError != null) return const [];
     final ids = _catalog.assignments
         .where((a) => a.routeId == route.id)
         .map((a) => a.jeepneyId)
         .toSet();
-    return _vehicles
+    return vehicles
         .where(
           (v) =>
               ids.contains(v.id) &&
@@ -143,11 +202,24 @@ class JeepneyController extends ChangeNotifier {
         .toList();
   }
 
-  Future<void> _loadRoutes() async {
+  Future<void> _loadRoutes() =>
+      _routePending ??= _fetchRoutes().whenComplete(() => _routePending = null);
+
+  Future<void> _fetchRoutes() async {
     final request = ++_routesRequest;
     routesLoading = true;
     routesError = null;
     try {
+      if (_catalog.receivedAt == null &&
+          _routeRepository is RestorableRouteRepository) {
+        final saved = await _routeRepository.readCachedCatalog();
+        if (_disposed || request != _routesRequest) return;
+        if (saved != null) {
+          _catalog = saved;
+          routesLoading = false;
+          notifyListeners();
+        }
+      }
       final catalog = await _routeRepository.loadCatalog();
       if (_disposed || request != _routesRequest) return;
       _catalog = catalog;
@@ -157,7 +229,7 @@ class JeepneyController extends ChangeNotifier {
     } catch (_) {
       if (_disposed || request != _routesRequest) return;
       _catalog = RouteCatalog();
-      _selectedRouteId = null;
+      // Keep the journey intent; only a valid catalog can revoke its route ID.
       routesError = 'Unable to load registered routes. Please retry.';
     } finally {
       if (!_disposed && request == _routesRequest) {
@@ -180,7 +252,11 @@ class JeepneyController extends ChangeNotifier {
   String? error;
   bool _disposed = false;
 
-  List<Jeepney> get vehicles => _vehicles;
+  List<Jeepney> get vehicles => offline
+      ? _vehicles
+            .map((v) => v.withRetrieval(v.retrievedAt, cached: true))
+            .toList()
+      : _vehicles;
   List<Jeepney> get filteredVehicles => journeyVehicles.where((vehicle) {
     final text = '${vehicle.id} ${vehicle.name}'.toLowerCase();
     return text.contains(query.trim().toLowerCase());
@@ -193,6 +269,7 @@ class JeepneyController extends ChangeNotifier {
 
   Future<void> refresh() async {
     if (refreshing) return;
+    _pollTimer?.cancel();
     refreshing = true;
     if (_vehicles.isEmpty) loading = true;
     error = null;
@@ -208,6 +285,8 @@ class JeepneyController extends ChangeNotifier {
       if (!_disposed) {
         refreshing = false;
         loading = false;
+        _failures = offline ? _failures + 1 : 0;
+        _schedulePoll();
         notifyListeners();
       }
     }
@@ -216,6 +295,7 @@ class JeepneyController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _pollTimer?.cancel();
     unawaited(_subscription.cancel());
     // The app composition root owns and disposes the repository.
     super.dispose();

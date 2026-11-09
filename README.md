@@ -23,6 +23,12 @@ It is a reference, not a verified boarding point. See
 
 Current map interaction and Infinix checks: [full-screen map](docs/FULLSCREEN_MAP.md).
 
+API mode now retains bounded public route/vehicle snapshots during weak connections.
+Cached markers are last known locations, with **CACHED / UNKNOWN** availability,
+original report times, visible received times and automatic API recovery. Favorites
+stay private and memory-only; the passenger waiting pin is never cached. See
+[offline architecture and Infinix interruption tests](docs/OFFLINE_HANDLING.md).
+
 ## Run and verify
 
 Developed with Flutter 3.47.5 / Dart 3.13.4. From this project directory:
@@ -75,10 +81,11 @@ not the passenger's location. Find Jeepneys checks foreground permission and req
 My Location requests a new reading; manual selection remains permission-free.
 
 API is the default, reading GET /api/jeepneys and the route catalog at
-GET /api/routes. Ordinary API mode polls vehicles every 30 seconds and
+GET /api/routes. Ordinary API mode polls routes and vehicles every 30 seconds and
 supports manual refresh with a 10-second request timeout. Freshness comes from
-the latest backend response and local expiry between polls. Failures clear API rows and offer retry; the app
-never silently substitutes demo records. Offline DEMO retains three fictional
+the latest backend response and local expiry between polls. Failures retain valid
+public snapshots for a 24-hour cache lifetime, mark availability unknown and retry
+with bounded backoff. The app never silently substitutes demo records. Offline DEMO retains three fictional
 vehicles internally, but none are assigned to routes or exposed as passenger
 results. Refresh changes the underlying examples without inventing assignments.
 OpenStreetMap tiles still need connectivity in either mode.
@@ -88,7 +95,7 @@ OpenStreetMap tiles still need connectivity in either mode.
 Repository/controller/UI boundaries remain intact:
 
 - lib/src/config: compile-time data mode, secure API origin, map configuration.
-- lib/src/data: separate API and offline demo repositories.
+- lib/src/data: separate API and offline demo repositories; bounded, scoped public cache.
 - lib/src/domain: immutable vehicle/status and route/assignment models, repository contracts.
 - lib/src/favorites: authenticated API repository, account-scoped state and glass UI.
 - lib/src/location: session-only waiting state, cancellable foreground acquisition,

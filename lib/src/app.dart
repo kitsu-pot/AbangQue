@@ -1,3 +1,4 @@
+import 'presentation/widgets/connection_notice.dart';
 import 'favorites/favorite_controller.dart';
 import 'favorites/favorite_repository.dart';
 import 'favorites/favorite_widgets.dart';
@@ -37,6 +38,7 @@ class JeepLinkApp extends StatefulWidget {
     this.mapConfig = const MapConfig(),
     this.tileProviderFactory,
     this.apiMode = false,
+    this.pollInterval,
     this.authController,
     this.favoriteRepository,
     this.locationService,
@@ -48,6 +50,7 @@ class JeepLinkApp extends StatefulWidget {
   final AuthController? authController;
   final RouteRepository routeRepository;
   final bool apiMode;
+  final Duration? pollInterval;
   final MapConfig mapConfig;
   final TileProviderFactory? tileProviderFactory;
 
@@ -55,7 +58,7 @@ class JeepLinkApp extends StatefulWidget {
   State<JeepLinkApp> createState() => _JeepLinkAppState();
 }
 
-class _JeepLinkAppState extends State<JeepLinkApp> {
+class _JeepLinkAppState extends State<JeepLinkApp> with WidgetsBindingObserver {
   final _waiting = WaitingLocationController();
   late final _favorites = FavoriteController(
     auth: widget.authController,
@@ -67,8 +70,19 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _accountId = widget.authController?.user?.id;
     widget.authController?.addListener(_accountChanged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _controller.setActive(true);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _controller.setActive(false);
+    }
   }
 
   void _accountChanged() {
@@ -83,11 +97,13 @@ class _JeepLinkAppState extends State<JeepLinkApp> {
   late final _controller = JeepneyController(
     widget.repository,
     apiMode: widget.apiMode,
+    pollInterval: widget.pollInterval,
     routeRepository: widget.routeRepository,
   );
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.authController?.removeListener(_accountChanged);
     _locationService.cancel();
     _waiting.dispose();
@@ -478,7 +494,15 @@ class _PassengerShellState extends State<_PassengerShell>
                               ),
                               const SizedBox(height: 16),
                             ],
-                            if (widget.controller.error != null) ...[
+                            if (widget.controller.managesConnectivity) ...[
+                              ConnectionNotice(
+                                controller: widget.controller,
+                                onRetry: _refresh,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (widget.controller.error != null &&
+                                !widget.controller.managesConnectivity) ...[
                               EmptyState(
                                 title: 'Unable to update the fleet',
                                 message: widget.controller.error!,

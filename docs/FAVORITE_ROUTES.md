@@ -10,7 +10,8 @@ remain unchanged. A selected registered route has a heart in the floating map
 panel. Outline means unsaved; filled means saved. Save/remove is confirmed by
 the server before the icon/list changes. Requests in progress disable duplicate
 taps. Home and Map refresh also refresh favorites; the Home card has its own
-refresh/retry control. Network errors never substitute local favorites.
+refresh/retry control. Network errors preserve only favorites already loaded in the current account
+memory session; no private disk cache or queued writes are introduced.
 
 Guests can search journeys, open maps and view public transport reports. Tapping
 the heart or Access Favorite Routes opens the optional Log In / Create Account /
@@ -25,7 +26,9 @@ public route catalog, selects the exact route ID and opens the existing map flow
 Reverse directions and multiple records in one direction remain separate IDs.
 Inactive/deleted routes show Route unavailable, cannot open, and can still be
 removed. A route becoming unavailable since the last list refresh is checked again
-on open. If the catalog cannot be reached, opening fails with a retryable error.
+on open. Since the offline phase, a valid cached public direction may open with
+explicit unverified/offline labeling; it is not proof the route remains active.
+Without a valid cached direction, opening fails with a retryable error.
 No route geometries, vehicle assignments, seat counts or ETA are invented.
 
 ## Architecture and security
@@ -211,3 +214,12 @@ Fresh results on 2026-11-07:
 
 No physical-device, GPS hardware, official-route verification or deployment is
 claimed.
+
+## Offline extension (2026-11-09)
+
+Temporary session-check failures no longer clear an already verified in-memory
+account. Actual session expiry/revocation and logout still clear its private list.
+Save/remove continues requiring protected API confirmation. See
+[OFFLINE_HANDLING.md](OFFLINE_HANDLING.md); its public route/vehicle cache is
+separate from favorites and secure credentials. Cold offline restarts do not grant
+login using public cached state.

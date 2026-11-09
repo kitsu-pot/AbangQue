@@ -1,3 +1,5 @@
+import '../widgets/connection_notice.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -117,7 +119,10 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     child: LayoutBuilder(
       builder: (context, constraints) {
         final large = MediaQuery.textScalerOf(context).scale(1) > 1.5;
-        final top = large ? 184.0 : 128.0;
+        final showConnection =
+            c.managesConnectivity && (c.offline || c.cacheWarning);
+        final top =
+            (large ? 184.0 : 128.0) + (showConnection ? (large ? 116 : 88) : 0);
         final height = constraints.maxHeight;
         _min = ((large ? 148 : 110) / height).clamp(.14, .33);
         _max = (1 - (top + 116) / height).clamp(_min + .12, .76);
@@ -230,6 +235,12 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                         ),
                       ),
                     ),
+                    if (showConnection)
+                      ConnectionNotice(
+                        controller: c,
+                        onRetry: widget.onRefresh ?? c.refresh,
+                        compact: true,
+                      ),
                   ],
                 ),
               ),
@@ -419,7 +430,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                 ),
                               ],
                               Text(
-                                source,
+                                c.managesConnectivity
+                                    ? '$source · ${c.connectionLabel}'
+                                    : source,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: JeepLinkColors.green,
@@ -431,7 +444,8 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                                 const LinearProgressIndicator(
                                   semanticsLabel: 'Loading jeepney reports',
                                 ),
-                              if (c.error != null) ...[
+                              if (c.error != null &&
+                                  !c.managesConnectivity) ...[
                                 const Text('Unable to update the fleet'),
                                 TextButton(
                                   onPressed: widget.onRefresh ?? c.refresh,

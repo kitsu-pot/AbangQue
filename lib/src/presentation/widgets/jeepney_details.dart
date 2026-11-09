@@ -101,6 +101,11 @@ class _Details extends StatelessWidget {
         const SizedBox(height: 6),
         Text(jeepney.name, style: Theme.of(context).textTheme.titleMedium),
         Text(jeepney.sourceLabel, style: Theme.of(context).textTheme.bodySmall),
+        if (jeepney.isCached) ...[
+          const SizedBox(height: 10),
+          const Text('Last known location · Current availability unverified'),
+          Text('Reports received: ${reportTime(jeepney.retrievedAt)}'),
+        ],
         const SizedBox(height: 24),
         GlassPanel(
           child: Column(

@@ -1,3 +1,4 @@
+import 'src/data/public_cache/cache_factory.dart';
 import 'src/favorites/favorite_repository.dart';
 
 import 'package:flutter/material.dart';
@@ -18,20 +19,26 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     final config = DataConfig.fromEnvironment();
+    final cache = config.apiMode
+        ? createPublicCache(config.baseUrl, config.enableGpsSimulation)
+        : null;
     runApp(
       JeepLinkApp(
         repository: config.apiMode
             ? ApiJeepneyRepository(
                 baseUrl: config.baseUrl,
                 allowSimulation: config.enableGpsSimulation,
-                pollInterval: Duration(
-                  seconds: config.enableGpsSimulation ? 5 : 30,
-                ),
+                pollInterval: null,
+                cache: cache,
               )
             : DemoJeepneyRepository(),
         apiMode: config.apiMode,
+        pollInterval: config.apiMode
+            ? Duration(seconds: config.enableGpsSimulation ? 5 : 30)
+            : null,
         routeRepository: config.apiMode
             ? ApiRouteRepository(
+                cache: cache,
                 baseUrl: config.baseUrl,
                 allowSimulation: config.enableGpsSimulation,
               )

@@ -116,10 +116,12 @@ with the desired defines; hot reload does not change compile-time configuration.
    Swapping or changing the selection clears earlier journey results.
 3. Map still renders OpenStreetMap geography and controls, with no unassigned
    vehicle markers. No route lines, terminals or stops are inferred.
-4. Tap refresh or pull down. Vehicle reads still poll every 30 seconds; manual
-   refresh also reloads the route catalog and signed-in favorites.
-5. Stop the backend and refresh. After at most the 10-second request timeout,
-   an error and Try again appear. Restart and retry; no simulator substitutes.
+4. Tap refresh or pull down. Routes and vehicles poll together every 30 seconds;
+   failed cycles back off to 30/60/120 seconds. Manual refresh also checks signed-in favorites.
+5. Stop the backend and refresh. After failure/timeout, a compact offline notice
+   appears. Valid cached routes and last known markers remain, with CACHED / UNKNOWN
+   status. With no cache, a friendly empty/error state appears. Restart the backend
+   and wait for automatic recovery or tap retry; no simulator substitutes.
 6. Future explicit route assignments will enable route-specific cards/details:
    historical DEMO remains STALE / UNKNOWN, ETA remains unavailable, and null
    positions have no marker. This future result path is exercised using injected
@@ -185,3 +187,11 @@ card and selected-route heart. Favorites require passenger login and reference
 registered route UUIDs; no DEMO or guest favorites are persisted. See
 [FAVORITE_ROUTES.md](FAVORITE_ROUTES.md) for endpoints, unavailable routes and the
 physical-phone acceptance checklist. No operating routes are seeded.
+
+## Offline recovery (2026-11-09)
+
+Public data is cached separately from accounts for a 24-hour lifetime, with bounded
+size and writes. Both datasets must return valid API responses to clear the offline
+warning; a Wi-Fi connection is not evidence of backend reachability. See
+[OFFLINE_HANDLING.md](OFFLINE_HANDLING.md) for storage limits, timestamps, retry
+policy, privacy and exact USB-phone/API-outage versus internet-outage tests.

@@ -42,6 +42,8 @@ class RouteAssignment {
 /// Atomic, immutable route/assignment snapshot. No inference from coordinates.
 class RouteCatalog {
   RouteCatalog({
+    this.isCached = false,
+    this.receivedAt,
     Iterable<PassengerRoute> routes = const [],
     Iterable<RouteAssignment> assignments = const [],
   }) : routes = List.unmodifiable(routes),
@@ -54,6 +56,8 @@ class RouteCatalog {
       throw ArgumentError('Invalid route catalog or dangling assignment.');
     }
   }
+  final bool isCached;
+  final DateTime? receivedAt;
   final List<PassengerRoute> routes;
   final List<RouteAssignment> assignments;
 }
@@ -67,4 +71,9 @@ class UnconfiguredRouteRepository implements RouteRepository {
   const UnconfiguredRouteRepository();
   @override
   Future<RouteCatalog> loadCatalog() async => RouteCatalog();
+}
+
+/// Public cached catalogs can be displayed while the initial request is pending.
+abstract interface class RestorableRouteRepository implements RouteRepository {
+  Future<RouteCatalog?> readCachedCatalog();
 }

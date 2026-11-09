@@ -5,32 +5,50 @@ import 'package:http/http.dart' as http;
 
 import '../domain/jeepney.dart';
 import '../domain/jeepney_repository.dart';
+import 'public_cache/public_cache.dart';
 
-/// Passenger read API only. No credential storage, device POSTs, or demo fallback.
-class ApiJeepneyRepository implements JeepneyRepository {
+/// Only public GETs. Cache failures never imply a successful API response.
+class ApiJeepneyRepository implements JeepneyRepository, PublicDataSource {
   ApiJeepneyRepository({
     required this.baseUrl,
     http.Client? client,
     this.timeout = const Duration(seconds: 10),
     this.allowSimulation = false,
     this.pollInterval = const Duration(seconds: 30),
+    this.cache,
     DateTime Function()? clock,
   }) : _client = client ?? http.Client(),
        _clock = clock ?? DateTime.now;
-  final DateTime Function() _clock;
   final Uri baseUrl;
   final bool allowSimulation;
-  Timer? _expiryTimer;
-  Duration? _staleAfter;
-  final http.Client _client;
   final Duration timeout;
   final Duration? pollInterval;
+  final PublicCache? cache;
+  final http.Client _client;
+  final DateTime Function() _clock;
+  @override
+  final state = PublicDataState();
   final _updates = StreamController<List<Jeepney>>.broadcast();
-  Timer? _timer;
-  bool _started = false;
-  bool _disposed = false;
+  Timer? _timer, _expiryTimer;
+  Duration? _staleAfter;
+  bool _started = false, _disposed = false, _hydrated = false;
+  int _failures = 0;
   Future<void>? _pending;
   List<Jeepney>? _latest;
+  Completer<void>? _abort;
+  List<Jeepney> _parse(dynamic rows) {
+    if (rows is! List || rows.length > 500) {
+      throw const FormatException('Invalid fleet');
+    }
+    final vehicles = rows
+        .map(parseApiJeepney)
+        .where((v) => !v.isSimulated || allowSimulation)
+        .toList();
+    if (vehicles.map((v) => v.id).toSet().length != vehicles.length) {
+      throw const FormatException('Duplicate IDs');
+    }
+    return vehicles;
+  }
 
   @override
   Stream<List<Jeepney>> watchJeepneys() => Stream.multi((listener) {
@@ -48,12 +66,8 @@ class ApiJeepneyRepository implements JeepneyRepository {
     if (!_started) {
       _started = true;
       unawaited(refresh());
-      if (pollInterval != null) {
-        _timer = Timer.periodic(pollInterval!, (_) => unawaited(refresh()));
-      }
     }
   });
-
   @override
   Future<void> refresh() {
     if (_disposed) return Future.value();
@@ -61,51 +75,100 @@ class ApiJeepneyRepository implements JeepneyRepository {
   }
 
   Future<void> _fetch() async {
+    _timer?.cancel();
     try {
-      final request = http.Request('GET', baseUrl.resolve('/api/jeepneys'))
-        ..followRedirects = false
-        ..headers['Accept'] = 'application/json';
-      // Refuse redirects, including HTTPS-to-HTTP downgrades. Bound the entire
-      // response, not just the time until headers arrive.
+      if (!_hydrated) {
+        _hydrated = true;
+        try {
+          final saved = await cache?.read('jeepneys');
+          if (!_disposed && saved != null && saved.validAt(_clock().toUtc())) {
+            _latest = _parse(saved.data)
+                .map((v) => v.withRetrieval(saved.receivedAt, cached: true))
+                .toList();
+            state.receivedAt = saved.receivedAt;
+            state.hasSnapshot = true;
+            _updates.add(_latest!);
+          }
+        } catch (_) {
+          /* Invalid cache is ignored, never used as fresh data. */
+        }
+      }
+      if (_disposed) return;
+      final abort = _abort = Completer<void>();
+      final request =
+          http.AbortableRequest(
+              'GET',
+              baseUrl.resolve('/api/jeepneys'),
+              abortTrigger: abort.future,
+            )
+            ..followRedirects = false
+            ..headers['Accept'] = 'application/json';
       final response = await _client
           .send(request)
           .then(http.Response.fromStream)
           .timeout(timeout);
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 ||
+          response.bodyBytes.length > publicCacheMaxBytes) {
         throw const FormatException('API request failed');
       }
       final json = jsonDecode(response.body);
-      if (json is! Map<String, dynamic> || json['data'] is! List) {
-        throw const FormatException('Invalid API envelope');
-      }
-      final vehicles = List<Jeepney>.unmodifiable(
-        (json['data'] as List)
-            .map(parseApiJeepney)
-            .where((v) => !v.isSimulated || allowSimulation),
+      final vehicles = _parse(json['data']);
+      if (_disposed) return;
+      final received = _clock().toUtc();
+      final seconds = json['meta'] is Map
+          ? json['meta']['staleAfterSeconds']
+          : null;
+      // Conservative fallback for old API versions, never infinite freshness.
+      _staleAfter = Duration(
+        seconds: seconds is int && seconds > 0 ? seconds : 120,
       );
-      if (vehicles.map((v) => v.id).toSet().length != vehicles.length) {
-        throw const FormatException('Duplicate vehicle IDs');
-      }
-      if (!_disposed) {
-        final meta = json['meta'];
-        final seconds = meta is Map ? meta['staleAfterSeconds'] : null;
-        _staleAfter = seconds is int && seconds > 0
-            ? Duration(seconds: seconds)
-            : null;
-        _latest = vehicles;
-        _publishWithFreshness();
+      _latest = vehicles.map((v) => v.withRetrieval(received)).toList();
+      state.receivedAt = received;
+      state.hasSnapshot = true;
+      state.offline = false;
+      state.attempted = true;
+      _failures = 0;
+      _publishWithFreshness();
+      try {
+        await cache?.write(
+          'jeepneys',
+          CacheEntry(vehicles.map(publicJeepneyJson).toList(), received),
+        );
+        state.cacheWriteFailed = false;
+      } catch (_) {
+        state.cacheWriteFailed = true;
       }
     } catch (_) {
       if (!_disposed) {
+        state.offline = true;
+        state.attempted = true;
+        _failures++;
         _expiryTimer?.cancel();
-        _latest = null;
-        _updates.addError(const ApiLoadException());
+        if (_latest != null &&
+            state.receivedAt != null &&
+            CacheEntry([], state.receivedAt!).validAt(_clock().toUtc())) {
+          _latest = _latest!
+              .map((v) => v.withRetrieval(state.receivedAt, cached: true))
+              .toList();
+          _updates.add(_latest!);
+        } else {
+          _latest = null;
+          state.hasSnapshot = false;
+          state.receivedAt = null;
+          _updates.addError(const ApiLoadException());
+        }
+      }
+    } finally {
+      if (_abort != null && !_abort!.isCompleted) _abort!.complete();
+      if (!_disposed && pollInterval != null) {
+        _timer = Timer(
+          _failures == 0 ? pollInterval! : retryDelay(_failures),
+          () => unawaited(refresh()),
+        );
       }
     }
   }
 
-  // Expire locally at the server's threshold even between successful polls.
-  // A timer never makes a stale report fresh; only a new API snapshot can do that.
   void _publishWithFreshness() {
     _expiryTimer?.cancel();
     if (_disposed || _latest == null) return;
@@ -140,10 +203,36 @@ class ApiJeepneyRepository implements JeepneyRepository {
     _disposed = true;
     _timer?.cancel();
     _expiryTimer?.cancel();
+    if (_abort != null && !_abort!.isCompleted) _abort!.complete();
     _client.close();
     await _updates.close();
   }
 }
+
+// Explicit allowlist: no passenger, credentials, arbitrary API extras or ETA.
+Map<String, Object?> publicJeepneyJson(Jeepney v) => {
+  'id': v.id,
+  'name': v.name,
+  'operatorName': v.operatorName,
+  'source': v.source == DataSource.hardware
+      ? 'device'
+      : v.source == DataSource.simulated
+      ? 'simulated'
+      : 'demo',
+  'isDemo': v.source != DataSource.hardware,
+  'isSimulated': v.isSimulated,
+  'isStale': v.isStale,
+  'connectionStatus': v.connectionStatus,
+  'timestamp': v.recordedAt?.toUtc().toIso8601String(),
+  'lastSeenAt': v.lastSeenAt?.toUtc().toIso8601String(),
+  'position': v.position == null
+      ? null
+      : {'latitude': v.position!.latitude, 'longitude': v.position!.longitude},
+  'status': v.reportedStatus == OccupancyStatus.unknown
+      ? null
+      : v.reportedStatus?.name.toUpperCase(),
+  'lastReportedStatus': v.lastReportedStatus?.name.toUpperCase(),
+};
 
 class ApiLoadException implements Exception {
   const ApiLoadException();
@@ -222,6 +311,11 @@ Jeepney parseApiJeepney(dynamic value) {
     fromApi: true,
     isStale: stale,
     connectionStatus: j['connectionStatus'],
+    lastReportedStatus: j['lastReportedStatus'] == 'FULL'
+        ? OccupancyStatus.full
+        : j['lastReportedStatus'] == 'AVAILABLE'
+        ? OccupancyStatus.available
+        : null,
     reportedStatus: j['status'] == 'FULL'
         ? OccupancyStatus.full
         : j['status'] == 'AVAILABLE'

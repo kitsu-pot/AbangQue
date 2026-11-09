@@ -238,7 +238,7 @@ void main() {
   });
 
   test(
-    'controller removes old API availability after failed refresh and recovers',
+    'controller retains public snapshots with unknown availability after failure and recovers',
     () async {
       var fail = false;
       final repo = repository(
@@ -254,8 +254,9 @@ void main() {
       fail = true;
       await controller.refresh();
       await Future<void>.delayed(Duration.zero);
-      expect(controller.vehicles, isEmpty);
-      expect(controller.error, isNotNull);
+      expect(controller.vehicles.length, 2);
+      expect(controller.vehicles.every((v) => v.isCached && v.status == OccupancyStatus.unknown), isTrue);
+      expect(controller.offline, isTrue);
       fail = false;
       await controller.refresh();
       await Future<void>.delayed(Duration.zero);
@@ -346,11 +347,12 @@ void main() {
       fail = true;
       await tester.tap(find.byTooltip('Refresh API'));
       await tester.pumpAndSettle();
-      expect(find.text('Unable to update the fleet'), findsOneWidget);
-      expect(find.byKey(const ValueKey('vehicle-DEMO-01')), findsNothing);
+      expect(find.text('Offline · Saved information'), findsOneWidget);
+      expect(find.byKey(const ValueKey('vehicle-DEMO-01')), findsOneWidget);
+      expect(find.text('CACHED / UNKNOWN'), findsNWidgets(2));
       fail = false;
-      await tester.ensureVisible(find.text('Try again'));
-      await tester.tap(find.text('Try again'));
+      await tester.ensureVisible(find.byTooltip('Retry connection'));
+      await tester.tap(find.byTooltip('Retry connection'));
       await tester.pumpAndSettle();
       expect(find.text('2 jeepneys on this route'), findsOneWidget);
       expect(tester.takeException(), isNull);

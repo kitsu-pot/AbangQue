@@ -56,8 +56,9 @@ enabled local development, once `SIM-GPS-001` exists with source `simulated`, it
 returns one `isDemo: true` direction and that vehicle's explicit assignment.
 These fixtures live in `backend/src/simulation.js`; no route tables, admin tools,
 official routes or inferred assignments are introduced. Historical DEMO vehicles
-remain unassigned. Old backends returning 404 produce an empty Flutter catalog;
-other route errors retain retry handling.
+remain unassigned. Since the offline phase, HTTP 404 and other failed route reads retain a valid
+cached catalog as unverified, or show a retryable error when no cache exists.
+Only a valid successful catalog response can replace route records.
 
 Flutter additionally requires `DEV_GPS_SIMULATION=true`, an API debug build, and a
 local API origin. Release/profile, remote-origin and offline-DEMO configurations

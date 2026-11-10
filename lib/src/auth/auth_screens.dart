@@ -6,37 +6,9 @@ import '../presentation/widgets/common.dart';
 import '../presentation/widgets/glass.dart';
 import '../theme.dart';
 import 'auth_controller.dart';
-
-String? nameError(String? value) {
-  final name = value?.trim() ?? '';
-  return name.isEmpty ||
-          name.length > 120 ||
-          RegExp(r'[\x00-\x1f\x7f]').hasMatch(name)
-      ? 'Enter your full name (up to 120 characters).'
-      : null;
-}
-
-String? emailError(String? value) =>
-    value == null ||
-        value.trim().length > 254 ||
-        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())
-    ? 'Enter a valid email address.'
-    : null;
-String? passwordError(String? value) {
-  final password = value ?? '';
-  if (password.length < 15 ||
-      password.length > 128 ||
-      password.trim().isEmpty ||
-      RegExp(r'^(.)\1+$').hasMatch(password) ||
-      [
-        'passwordpassword',
-        '123456789012345',
-        '12345678901234567890',
-      ].contains(password.toLowerCase())) {
-    return 'Use 15–128 characters. Choose a long, unique passphrase.';
-  }
-  return null;
-}
+import 'auth_validation.dart';
+import 'account_management.dart';
+export 'auth_validation.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.controller, required this.child});
@@ -387,13 +359,13 @@ class PassengerProfileScreen extends StatefulWidget {
 
 class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
   final _form = GlobalKey<FormState>();
-  late final _name = TextEditingController(
-    text: widget.controller.user?.fullName ?? '',
-  );
-  String? _notice;
+  final _name = TextEditingController();
+  String? _nameAccount, _savedName, _notice;
   @override
   void initState() {
     super.initState();
+    _syncName();
+    widget.controller.addListener(_syncName);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.controller.user != null) {
         unawaited(widget.controller.restore());
@@ -401,11 +373,77 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
     });
   }
 
+  void _syncName() {
+    final user = widget.controller.user;
+    if (_nameAccount != user?.id || _name.text == (_savedName ?? '')) {
+      _name.text = user?.fullName ?? '';
+    }
+    if (_nameAccount != user?.id) _notice = null;
+    _nameAccount = user?.id;
+    _savedName = user?.fullName;
+  }
+
   @override
   void dispose() {
+    widget.controller.removeListener(_syncName);
     _name.dispose();
     super.dispose();
   }
+
+  Future<void> _signIn(bool register) async {
+    widget.controller.clearError();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => AuthScreen(
+          controller: widget.controller,
+          initialRegister: register,
+          returnToJourney: true,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _security(bool deleting) async {
+    setState(() => _notice = null);
+    widget.controller.clearError();
+    final done = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AccountSecurityDialog(
+        controller: widget.controller,
+        deleting: deleting,
+      ),
+    );
+    if (!mounted || done != true) return;
+    setState(
+      () => _notice = deleting
+          ? 'Your account and saved favorites have been deleted. You can continue as a guest.'
+          : 'Password changed. Other sessions have been signed out.',
+    );
+  }
+
+  Widget _section(String title, IconData icon, List<Widget> children) =>
+      GlassPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: JeepLinkColors.green),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -427,111 +465,189 @@ class _PassengerProfileScreenState extends State<PassengerProfileScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
-                  child: GlassPanel(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Icon(
-                          Icons.account_circle_outlined,
-                          size: 54,
-                          color: JeepLinkColors.green,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (auth.error != null) ...[
+                        _AuthError(auth.error!),
+                        TextButton(
+                          onPressed: auth.busy ? null : auth.restore,
+                          child: const Text('Retry account check'),
                         ),
-                        const SizedBox(height: 18),
-                        if (auth.error != null) ...[
-                          _AuthError(auth.error!),
-                          const SizedBox(height: 14),
-                        ],
-                        if (auth.busy)
-                          const LinearProgressIndicator(
+                        const SizedBox(height: 12),
+                      ],
+                      if (auth.busy)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(
                             semanticsLabel: 'Updating account',
                           ),
-                        if (user == null) ...[
-                          Text(
-                            'Travelling as a guest',
-                            style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      if (_notice != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Text(_notice!),
                           ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Route selection and transport information do not require an account.',
-                          ),
-                          const SizedBox(height: 20),
-                          FilledButton(
-                            onPressed: auth.busy
-                                ? null
-                                : () {
-                                    Navigator.pop(context);
-                                    auth.openSignIn();
-                                  },
-                            child: const Text('Sign in or register'),
-                          ),
-                        ] else ...[
-                          const DemoBadge(label: 'PASSENGER'),
-                          const SizedBox(height: 18),
-                          Text(
-                            user.email,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Email is your sign-in address. Email changes and password reset are not available yet.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: JeepLinkColors.muted,
+                        ),
+                      if (user == null)
+                        _section(
+                          'Travelling as a guest',
+                          Icons.account_circle_outlined,
+                          [
+                            const Text(
+                              'Route selection and transport information do not require an account. Favorites require sign-in.',
                             ),
-                          ),
-                          const SizedBox(height: 22),
-                          Form(
-                            key: _form,
-                            child: TextFormField(
-                              key: const ValueKey('profile-name'),
-                              controller: _name,
-                              enabled: !auth.busy,
-                              validator: nameError,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                labelText: 'Full name',
-                                errorMaxLines: 3,
+                            const SizedBox(height: 16),
+                            FilledButton(
+                              onPressed: auth.busy || !auth.enabled
+                                  ? null
+                                  : () => _signIn(false),
+                              child: const Text('Log In'),
+                            ),
+                            OutlinedButton(
+                              onPressed: auth.busy || !auth.enabled
+                                  ? null
+                                  : () => _signIn(true),
+                              child: const Text('Create Account'),
+                            ),
+                            if (!auth.enabled)
+                              const Text(
+                                'Accounts are available in API mode. This mode remains guest-only.',
+                              ),
+                          ],
+                        )
+                      else ...[
+                        _section(
+                          'Account information',
+                          Icons.person_outline_rounded,
+                          [
+                            Text(
+                              user.fullName,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(user.email),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Registered email · Read-only. Email changes and password reset are not available yet.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: JeepLinkColors.muted,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_notice != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(_notice!),
+                            const SizedBox(height: 20),
+                            Form(
+                              key: _form,
+                              child: TextFormField(
+                                key: const ValueKey('profile-name'),
+                                controller: _name,
+                                enabled: !auth.busy,
+                                validator: nameError,
+                                textCapitalization: TextCapitalization.words,
+                                decoration: const InputDecoration(
+                                  labelText: 'Full name',
+                                  errorMaxLines: 3,
+                                ),
+                              ),
                             ),
-                          PassengerButton(
-                            onPressed: auth.busy
-                                ? null
-                                : () async {
-                                    if (!_form.currentState!.validate()) return;
-                                    FocusScope.of(context).unfocus();
-                                    setState(() => _notice = null);
-                                    await auth.updateName(_name.text);
-                                    if (mounted && auth.error == null) {
-                                      setState(
-                                        () => _notice = 'Profile updated.',
+                            const SizedBox(height: 16),
+                            PassengerButton(
+                              onPressed: auth.busy
+                                  ? null
+                                  : () async {
+                                      if (!_form.currentState!.validate()) {
+                                        return;
+                                      }
+                                      FocusScope.of(context).unfocus();
+                                      setState(() => _notice = null);
+                                      final saved = await auth.updateName(
+                                        _name.text,
                                       );
-                                    }
-                                  },
-                            icon: const Icon(Icons.check_rounded),
-                            label: const Text('Save profile'),
+                                      if (mounted && saved) {
+                                        setState(
+                                          () => _notice = 'Profile updated.',
+                                        );
+                                      }
+                                    },
+                              icon: const Icon(Icons.check_rounded),
+                              label: const Text('Save profile'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _section('Security', Icons.lock_outline_rounded, [
+                          const Text(
+                            'Use your current password to set a new passphrase. Other sessions will be signed out.',
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           OutlinedButton(
                             onPressed: auth.busy
                                 ? null
-                                : () async {
-                                    await auth.logout();
-                                    if (context.mounted && auth.user == null) {
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                            child: const Text('Sign out'),
+                                : () => _security(false),
+                            child: const Text('Change password'),
                           ),
-                        ],
+                        ]),
                       ],
-                    ),
+                      const SizedBox(height: 16),
+                      _section('Privacy', Icons.shield_outlined, [
+                        const Text(
+                          'Understand your account, location permission and offline information.',
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute(
+                              builder: (_) => const PrivacyDataScreen(),
+                            ),
+                          ),
+                          child: const Text('Privacy & Data'),
+                        ),
+                      ]),
+                      if (user != null) ...[
+                        const SizedBox(height: 16),
+                        _section(
+                          'Account actions',
+                          Icons.manage_accounts_outlined,
+                          [
+                            OutlinedButton(
+                              onPressed: auth.busy
+                                  ? null
+                                  : () async {
+                                      await auth.logout();
+                                      if (context.mounted &&
+                                          auth.user == null &&
+                                          auth.error == null) {
+                                        Navigator.pop(context);
+                                      }
+                                    },
+                              child: const Text('Sign out'),
+                            ),
+                            const SizedBox(height: 20),
+                            const Divider(),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Permanently remove your account and Favorite Routes. Public routes and jeepney reports remain available.',
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              key: const ValueKey('delete-account'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .error,
+                              ),
+                              onPressed: auth.busy
+                                  ? null
+                                  : () => _security(true),
+                              child: const Text('Delete account'),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
               ),

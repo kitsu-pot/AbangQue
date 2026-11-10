@@ -223,3 +223,13 @@ Save/remove continues requiring protected API confirmation. See
 [OFFLINE_HANDLING.md](OFFLINE_HANDLING.md); its public route/vehicle cache is
 separate from favorites and secure credentials. Cold offline restarts do not grant
 login using public cached state.
+
+
+## Account management extension (2026-11-10)
+
+Profile now offers current-password-verified account deletion. The backend uses the
+existing cascading foreign key to delete this account's favorites in the same
+transaction as its account and sessions, without deleting registered routes or
+other passengers' favorites. Password changes invalidate the account's other
+sessions. Local private state clears on deletion/logout/expiry/account change.
+See [ACCOUNT_MANAGEMENT.md](ACCOUNT_MANAGEMENT.md) for the exact API and tests.

@@ -294,3 +294,19 @@ checklist. npm run test:postgres now includes real registration/login/favorites
 HTTP tests in isolated PostgreSQL schemas, alongside existing auth/GPS regressions.
 Earlier database-free verification limitations above describe those checks only;
 physical GPS/device operation and deployment remain unverified.
+
+
+## Passenger account management (2026-11-10)
+
+The existing `/api/auth/me` profile endpoint is extended with authenticated
+`POST /api/auth/me/password` and `DELETE /api/auth/me`. Sensitive operations require
+current-password verification and share IP/account limits. Password change revokes
+other sessions; deletion transactionally cascades only to the passenger's sessions
+and favorites. Login is synchronized with those changes to reject stale credentials.
+No new migration, dependency, environment variable, route seed or schema reset is
+needed for an existing setup. Restart the backend after updating.
+
+See [Account Management & Privacy](../docs/ACCOUNT_MANAGEMENT.md) for request bodies,
+errors, session behavior, privacy/retention boundaries and the phone checklist.
+`npm run test:postgres` includes the new isolated account-management SQL/API suite,
+with forced rollback, concurrent requests and account-isolation regressions.

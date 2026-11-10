@@ -12,6 +12,10 @@ const password = z.string().min(15).max(128).refine(v => /\S/u.test(v) && !/^(.)
 const registration = z.object({ fullName, email, password }).strict();
 const loginInput = z.object({ email, password: z.string().min(1).max(128) }).strict();
 const profileInput = z.object({ fullName }).strict();
+const currentPassword = z.string().min(1).max(128);
+const passwordInput = z.object({ currentPassword, newPassword: password, confirmPassword: z.string().max(128) }).strict()
+  .refine(v => v.newPassword === v.confirmPassword && v.newPassword !== v.currentPassword);
+const deletionInput = z.object({ currentPassword }).strict();
 const tokenPattern = /^Bearer (aqp_[A-Za-z0-9_-]{43})$/;
 export const hashToken = token => createHash('sha256').update(token).digest('hex');
 const newToken = () => 'aqp_' + randomBytes(32).toString('base64url');
@@ -66,6 +70,16 @@ export function passengerAuthRouter({ repository, config }) {
     req.tokenHash = hashToken(match[1]); next();
   };
   const passenger = requirePassenger({ repository, config });
+  // Shared by password changes/deletion, per IP and verified account (not token).
+  const sensitiveIP = limit(config.AUTH_RATE_LIMIT);
+  const sensitiveAccount = rateLimit({ windowMs: 15 * 60 * 1000, limit: config.AUTH_RATE_LIMIT,
+    keyGenerator: req => req.passenger.id,
+    standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'AUTH_RATE_LIMITED' } });
+  const verifyCurrent = async (hash, value) => {
+    if (!await argon2.verify(hash, value)) {
+      throw Object.assign(new Error('Reauthentication failed'), { accountError: 'CURRENT_PASSWORD_INCORRECT' });
+    }
+  };
   router.post('/register', attempts, ...body, validate(registration), async (req, res) => {
     const token = newToken();
     const passwordHash = await passwordWork(() => argon2.hash(req.input.password, passwordOptions));
@@ -88,7 +102,8 @@ export function passengerAuthRouter({ repository, config }) {
     });
     if (!valid || !user || user.role !== 'PASSENGER') return res.status(401).json({ error: 'INVALID_LOGIN' });
     const token = newToken();
-    const session = await repository.login(user.id, hashToken(token), config.SESSION_TTL_SECONDS);
+    const session = await repository.login(user.id, hashToken(token), config.SESSION_TTL_SECONDS, user.password_hash);
+    if (!session) return res.status(401).json({ error: 'INVALID_LOGIN' });
     res.json({ data: { user: publicUser(session), token, expiresAt: session.expires_at.toISOString() } });
   });
   router.get('/me', token, passenger, (req, res) => res.json({ data: {
@@ -99,9 +114,22 @@ export function passengerAuthRouter({ repository, config }) {
     if (!user) return res.status(401).json({ error: 'SESSION_INVALID' });
     res.json({ data: { user: publicUser(user) } });
   });
+  router.post('/me/password', sensitiveIP, passenger, sensitiveAccount, ...body, validate(passwordInput), async (req, res) => {
+    await passwordWork(() => repository.changePassword(req.tokenHash, async hash => {
+      await verifyCurrent(hash, req.input.currentPassword);
+      return argon2.hash(req.input.newPassword, passwordOptions);
+    }));
+    res.sendStatus(204);
+  });
+  router.delete('/me', sensitiveIP, passenger, sensitiveAccount, ...body, validate(deletionInput), async (req, res) => {
+    await passwordWork(() => repository.deleteAccount(req.tokenHash, hash => verifyCurrent(hash, req.input.currentPassword)));
+    res.sendStatus(204);
+  });
   // Idempotent for expired/already revoked sessions. Only this token is revoked.
   router.post('/logout', token, async (req, res) => { await repository.revoke(req.tokenHash); res.sendStatus(204); });
   router.use((error, _req, res, next) => {
+    if (error.accountError === 'SESSION_INVALID') return res.status(401).json({ error: 'SESSION_INVALID' });
+    if (error.accountError === 'CURRENT_PASSWORD_INCORRECT') return res.status(403).json({ error: 'CURRENT_PASSWORD_INCORRECT' });
     if (error.authBusy) return res.status(503).json({ error: 'AUTH_BUSY' });
     next(error);
   });

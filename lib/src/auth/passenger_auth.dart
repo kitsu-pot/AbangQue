@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -52,6 +53,13 @@ abstract interface class PassengerAuthRepository {
   Future<PassengerSession> register(String name, String email, String password);
   Future<PassengerSession> restore(String token);
   Future<PassengerProfile> updateName(String token, String name);
+  Future<void> changePassword(
+    String token,
+    String current,
+    String next,
+    String confirmation,
+  );
+  Future<void> deleteAccount(String token, String current);
   Future<void> logout(String token);
   void dispose();
 }
@@ -73,11 +81,20 @@ class ApiPassengerAuthRepository implements PassengerAuthRepository {
     String path, {
     Map<String, String>? body,
     String? token,
+    bool requireNoContent = false,
   }) async {
+    final abort = Completer<void>();
+    final mutation =
+        method == 'PATCH' || method == 'DELETE' || path == 'me/password';
     try {
-      final request = http.Request(method, baseUrl.resolve('/api/auth/$path'))
-        ..followRedirects = false
-        ..headers['Accept'] = 'application/json';
+      final request =
+          http.AbortableRequest(
+              method,
+              baseUrl.resolve('/api/auth/$path'),
+              abortTrigger: abort.future,
+            )
+            ..followRedirects = false
+            ..headers['Accept'] = 'application/json';
       if (body != null) {
         request.headers['Content-Type'] = 'application/json';
         request.body = jsonEncode(body);
@@ -107,20 +124,34 @@ class ApiPassengerAuthRepository implements PassengerAuthRepository {
         );
       }
       if (response.statusCode == 400) {
-        throw const AuthFailure(
-          'Please check your details. Use a valid email and a password of 15–128 characters.',
+        throw AuthFailure(
+          path == 'me/password'
+              ? 'Check your current password, use a different 15–128 character passphrase, and match its confirmation.'
+              : path == 'me'
+              ? 'Check your account details. Names must contain 1–120 characters and no control characters.'
+              : 'Please check your details. Use a valid email and a password of 15–128 characters.',
         );
       }
       if (response.statusCode == 403) {
+        if (mutation &&
+            jsonDecode(response.body)['error'] ==
+                'CURRENT_PASSWORD_INCORRECT') {
+          throw const AuthFailure(
+            'Current password is incorrect. Your account has not changed.',
+          );
+        }
         throw const AuthFailure(
           'Passenger account access is unavailable. Check the secure API configuration.',
         );
       }
       if (response.statusCode != 200 && response.statusCode != 201) {
-        throw const AuthFailure(
-          'Account service unavailable. Please try again. You can continue as a guest.',
+        throw AuthFailure(
+          mutation
+              ? 'The account change could not be confirmed. Check your connection and account before trying again. Nothing is queued.'
+              : 'Account service unavailable. Please try again. You can continue as a guest.',
         );
       }
+      if (requireNoContent) throw const FormatException('Unconfirmed change');
       final decoded = jsonDecode(response.body);
       if (decoded is! Map || decoded['data'] is! Map<String, dynamic>) {
         throw const FormatException();
@@ -129,9 +160,13 @@ class ApiPassengerAuthRepository implements PassengerAuthRepository {
     } on AuthFailure {
       rethrow;
     } catch (_) {
-      throw const AuthFailure(
-        'Could not reach the account service. Check your connection and try again.',
+      throw AuthFailure(
+        mutation
+            ? 'The account change could not be confirmed. It may have reached the server. Check your account before retrying; nothing is queued.'
+            : 'Could not reach the account service. Check your connection and try again.',
       );
+    } finally {
+      if (!abort.isCompleted) abort.complete();
     }
   }
 
@@ -199,6 +234,37 @@ class ApiPassengerAuthRepository implements PassengerAuthRepository {
   @override
   Future<void> logout(String token) async {
     await _request('POST', 'logout', token: token);
+  }
+
+  @override
+  Future<void> changePassword(
+    String token,
+    String current,
+    String next,
+    String confirmation,
+  ) async {
+    await _request(
+      'POST',
+      'me/password',
+      token: token,
+      requireNoContent: true,
+      body: {
+        'currentPassword': current,
+        'newPassword': next,
+        'confirmPassword': confirmation,
+      },
+    );
+  }
+
+  @override
+  Future<void> deleteAccount(String token, String current) async {
+    await _request(
+      'DELETE',
+      'me',
+      token: token,
+      requireNoContent: true,
+      body: {'currentPassword': current},
+    );
   }
 
   @override

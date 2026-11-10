@@ -4,10 +4,13 @@ A Material 3 Flutter passenger application for Marinduque, Philippines, with an
 original emerald/mint/cream Liquid Glass-inspired interface. English is the
 current interface language. The existing internal package name remains jeeplink.
 
-Passenger login, registration, persistent secure sessions, profile editing and
-server-revoked logout are implemented. **Continue as Guest** keeps transportation
-information public. Offline DEMO remains guest-only. See
+Passenger login, registration, persistent secure sessions, profile editing, password
+changes, permanent account deletion and server-revoked logout are implemented.
+**Continue as Guest** keeps transportation information public. Offline DEMO remains guest-only. See
 [authentication setup and security](docs/AUTHENTICATION.md) before running accounts.
+Profile also provides guest-accessible Privacy & Data information. See
+[account management and Infinix checks](docs/ACCOUNT_MANAGEMENT.md); this phase
+requires no new migration or dependency. Restart the backend after updating.
 
 Signed-in passengers can save registered directions with the map heart and reopen
 them from Home. Guests receive an optional sign-in prompt; no guest or DEMO
@@ -97,6 +100,7 @@ Repository/controller/UI boundaries remain intact:
 - lib/src/config: compile-time data mode, secure API origin, map configuration.
 - lib/src/data: separate API and offline demo repositories; bounded, scoped public cache.
 - lib/src/domain: immutable vehicle/status and route/assignment models, repository contracts.
+- lib/src/auth: secure API sessions, profile/security controls and privacy information.
 - lib/src/favorites: authenticated API repository, account-scoped state and glass UI.
 - lib/src/location: session-only waiting state, cancellable foreground acquisition,
   permission/error handling and reusable picker/panel.

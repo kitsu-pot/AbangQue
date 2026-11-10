@@ -166,7 +166,7 @@ class AuthController extends ChangeNotifier {
         saved.pendingLogout ||
         !saved.expiresAt.isAfter(DateTime.now())) {
       throw const AuthFailure(
-        'Please log in to access your favorites.',
+        'Please log in to access your account.',
         unauthorized: true,
       );
     }
@@ -187,15 +187,24 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<void> updateName(String name) async {
+  Future<bool> updateName(String name) async {
     final saved = _saved;
-    if (busy || saved == null || user == null) return;
+    if (busy || saved == null || user == null) return false;
     busy = true;
     error = null;
     _notify();
     try {
       final updated = await repository!.updateName(saved.token, name);
-      if (!_disposed && _saved?.token == saved.token) user = updated;
+      if (_disposed || _saved?.token != saved.token) {
+        return false;
+      }
+      if (updated.id != user?.id) {
+        throw const AuthFailure(
+          'The profile response did not match your account. Please retry the account check.',
+        );
+      }
+      user = updated;
+      return true;
     } catch (e) {
       if (e is AuthFailure && e.unauthorized) {
         try {
@@ -206,6 +215,59 @@ class AuthController extends ChangeNotifier {
         guest = true;
       }
       error = _message(e);
+      return false;
+    } finally {
+      busy = false;
+      _notify();
+    }
+  }
+
+  Future<bool> changePassword(
+    String current,
+    String next,
+    String confirmation,
+  ) => _manageAccount(
+    (token) => repository!.changePassword(token, current, next, confirmation),
+  );
+
+  Future<bool> deleteAccount(String current) => _manageAccount(
+    (token) => repository!.deleteAccount(token, current),
+    deleting: true,
+  );
+
+  Future<bool> _manageAccount(
+    Future<void> Function(String) action, {
+    bool deleting = false,
+  }) async {
+    final saved = _saved;
+    if (busy || saved == null || user == null) return false;
+    busy = true;
+    error = null;
+    _notify();
+    try {
+      await authenticated(action);
+      if (_disposed) return false;
+      if (deleting) {
+        // A confirmed server deletion revokes every token. Clear identity first,
+        // so even a secure-store failure cannot keep private UI state alive.
+        error = null;
+        guest = true;
+        user = null;
+        _saved = null;
+        _expiry?.cancel();
+        _notify();
+        try {
+          await store.clear();
+        } catch (_) {
+          error = 'Account deleted. This device could not remove its revoked sign-in credential. Restart and retry session recovery to clear it.';
+        }
+      } else if (_saved?.token != saved.token) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      error = _message(e);
+      return false;
     } finally {
       busy = false;
       _notify();
@@ -234,7 +296,25 @@ class AuthController extends ChangeNotifier {
       }
       await _forget();
     } catch (e) {
-      error = _message(e);
+      // Even if writing the logout marker fails, remove private UI state and
+      // try revocation/credential removal. Never claim durable logout if both
+      // the server and secure storage are unavailable.
+      user = null;
+      guest = true;
+      _expiry?.cancel();
+      _notify();
+      try {
+        await repository!.logout(saved.token);
+        await _forget();
+      } catch (_) {
+        try {
+          await store.clear();
+          _saved = null;
+          error = 'Signed out on this device. Server sign-out could not be confirmed; the session remains subject to its original expiry.';
+        } catch (_) {
+          error = 'Secure sign-out could not be completed. A sign-in credential may remain on this device. Reconnect and retry session recovery before sharing this device.';
+        }
+      }
     } finally {
       busy = false;
       _notify();

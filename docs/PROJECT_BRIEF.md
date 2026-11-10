@@ -514,3 +514,36 @@ queue. No backend/schema change, operating routes, assignments, firmware or
 administration feature is introduced. The existing path_provider dependency is now
 explicitly imported for the public cache directory. Android physical verification
 is pending: adb reported no attached device during this task.
+
+
+## 21. Passenger account management and privacy (2026-11-10)
+
+Checkpoint `checkpoint/account-privacy-2026-11-10` preserves `5c13e73`. The existing
+Profile now groups name editing, read-only registered email, password change,
+guest-accessible Privacy & Data, logout and deliberate permanent account deletion.
+Guests retain transport access and separate Log In/Create Account choices. UI
+forms reuse the glass components, shared validation and existing auth controller.
+
+POST /api/auth/me/password verifies the current password, writes an Argon2id hash
+and revokes other sessions in one transaction; the current session retains its
+original token/expiry. DELETE /api/auth/me verifies the current password and
+transactionally removes the account plus existing cascading sessions/favorites.
+Account locks and session rechecks serialize sensitive actions with login; a login
+verified against an old hash cannot create a session after password change/deletion.
+Authenticated identity, strict validation and IP/account rate limits protect both
+operations. No migration, new dependency or new environment setting is required.
+
+Account changes require server confirmation and are not queued. Timeout outcomes
+are disclosed as unconfirmed because the server may already have committed. Logout
+also clears private memory and attempts revocation if its secure marker write fails.
+Account changes cannot populate the public cache or share private favorites. No
+public route/device/telemetry records or other passenger accounts are deleted.
+
+The in-app privacy explanation describes actual account/session data, favorites,
+foreground location use, memory-only waiting points, OSM tile disclosure and the
+bounded public offline cache. It is explicitly not a formal privacy policy; no legal
+entity/contact/retention period is invented. External backup/log retention and
+public-deployment safeguards remain unresolved. See
+[ACCOUNT_MANAGEMENT.md](ACCOUNT_MANAGEMENT.md) for architecture, current checks,
+security limits and the Infinix verification steps. No phone was attached during
+this implementation, so physical acceptance is still pending.

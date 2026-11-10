@@ -1,6 +1,9 @@
 # Passenger authentication
 
 Implemented 2026-11-01. Pre-change checkpoint: `acbba76`.
+Extended 2026-11-10 with [Account Management & Privacy](ACCOUNT_MANAGEMENT.md):
+password change, transactional deletion, stronger concurrent-session handling and
+Profile privacy information. The linked guide contains current verification results.
 
 ## Scope and user experience
 
@@ -47,7 +50,9 @@ Sessions use random 256-bit opaque bearer tokens, prefixed aqp_. Only SHA-256
 token hashes are stored on the server. Expiry is absolute (default seven days),
 checked by PostgreSQL on every protected request, with no sliding extension or
 refresh token. Login creates a new independent session. Sign-out revokes the
-current session server-side; other devices remain signed in. Expired/revoked
+current session server-side; other devices remain signed in. Password change revokes
+all other sessions while retaining the current token and its original expiry.
+Account deletion removes every session for that account. Expired/revoked
 rows may be pruned later by an operator according to a retention policy.
 
 Unknown email and incorrect password both return the same 401 INVALID_LOGIN;
@@ -85,7 +90,9 @@ is pending. Startup/recovery retries revocation; that marked token cannot restor
 an identity. A new login first completes any pending revocation. Online sign-out
 removes the local credential after server confirmation. Server-side expiry still
 limits the session if the phone never reconnects. If storage cannot write the
-marker, logout reports failure instead of claiming successful cleanup.
+marker, logout clears private memory and attempts server revocation/credential
+removal. If durable cleanup still fails, it reports that limitation explicitly;
+see the account-management guide for the fallback behavior.
 
 ## API contract
 
@@ -95,6 +102,8 @@ marker, logout reports failure instead of claiming successful cleanup.
 | POST /api/auth/login | JSON email, password | 200 data: user, token, expiresAt |
 | GET /api/auth/me | Passenger bearer token | 200 data: user, expiresAt |
 | PATCH /api/auth/me | Passenger bearer token; JSON fullName | 200 data: user |
+| POST /api/auth/me/password | Passenger bearer token; JSON currentPassword, newPassword, confirmPassword | 204; other sessions revoked |
+| DELETE /api/auth/me | Passenger bearer token; JSON currentPassword | 204 after account/session/favorite deletion commits |
 | POST /api/auth/logout | Passenger bearer token | 204; idempotent for expired/revoked tokens |
 
 User contains id, fullName, email and role=PASSENGER. No password hash, session
@@ -192,7 +201,7 @@ Other desktop/Apple keychain packaging has not been runtime verified in this pha
 
 ## Checks and references
 
-Verified in this development session:
+Historical authentication-phase results (2026-11-01; current account-management results are linked above):
 
 - `npm run check`: passed.
 - `npm test`: 28 passed; the PostgreSQL suite is intentionally skipped here.

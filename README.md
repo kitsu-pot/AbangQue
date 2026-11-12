@@ -1,5 +1,10 @@
 # AbangQue passenger app
 
+The separate **Admin Web Dashboard foundation** is in `admin-web/`. See
+[admin setup, secure first-account provisioning and verification](docs/ADMIN_WEB.md).
+It reuses the Express/PostgreSQL backend and requires migration 005. No public
+admin registration or management CRUD is included.
+
 A Material 3 Flutter passenger application for Marinduque, Philippines, with an
 original emerald/mint/cream Liquid Glass-inspired interface. English is the
 current interface language. The existing internal package name remains jeeplink.

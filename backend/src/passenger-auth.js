@@ -22,7 +22,7 @@ const newToken = () => 'aqp_' + randomBytes(32).toString('base64url');
 const publicUser = row => ({ id: row.id, fullName: row.full_name, email: row.email, role: row.role });
 let dummyHash;
 let activeHashes = 0;
-async function passwordWork(action) {
+export async function passwordWork(action) {
   // Bound memory used by expensive hashes; reject excess work instead of queuing it.
   if (activeHashes >= 4) { const e = new Error('Busy'); e.authBusy = true; throw e; }
   activeHashes++;

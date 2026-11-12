@@ -310,3 +310,10 @@ See [Account Management & Privacy](../docs/ACCOUNT_MANAGEMENT.md) for request bo
 errors, session behavior, privacy/retention boundaries and the phone checklist.
 `npm run test:postgres` includes the new isolated account-management SQL/API suite,
 with forced rollback, concurrent requests and account-isolation regressions.
+
+## Administrator web foundation
+
+The React admin frontend uses this same API and database. Apply migration 005,
+provision the first account with `npm run admin:provision` in local development,
+and restart the API. See [ADMIN_WEB.md](../docs/ADMIN_WEB.md) for exact PowerShell
+commands, cookie/CSRF configuration, endpoints, testing and future HTTPS hosting.

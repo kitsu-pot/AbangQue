@@ -1,5 +1,9 @@
 # Running AbangQue against the backend
 
+For the separate administrator website, follow [admin web setup](ADMIN_WEB.md).
+Its browser-cookie authentication and `/api/admin` endpoints are independent of
+passenger authentication; the Flutter configuration below remains unchanged.
+
 The old startup always used DemoJeepneyRepository. The default startup now uses
 ApiJeepneyRepository and shows an **API** badge on Home. All four screens use the AbangQue glass
 design. DATA_MODE=demo explicitly selects the separate offline simulator.

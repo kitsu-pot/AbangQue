@@ -1,5 +1,10 @@
 # AbangQue — Project brief
 
+Current phase update (2026-11-12): the owner explicitly authorized the separate
+admin web foundation. See section 22 and [ADMIN_WEB.md](ADMIN_WEB.md). Earlier
+admin deferral notes below are historical; full management modules and deployment
+remain outside the authorized foundation scope.
+
 GitHub repository: https://github.com/kitsu-pot/AbangQue
 
 Owner preference recorded 2026-11-06: commit and push completed project changes
@@ -547,3 +552,30 @@ public-deployment safeguards remain unresolved. See
 [ACCOUNT_MANAGEMENT.md](ACCOUNT_MANAGEMENT.md) for architecture, current checks,
 security limits and the Infinix verification steps. No phone was attached during
 this implementation, so physical acceptance is still pending.
+
+## 22. Admin web dashboard foundation (2026-11-12)
+
+Checkpoint `checkpoint/admin-foundation-2026-11-12` preserves `db859dc`. The owner
+explicitly requested React/TypeScript/Vite/Tailwind administrator authentication,
+an overview and responsive navigation. `admin-web/` is separate from Flutter and
+uses the same Express API/PostgreSQL database. Migration 005 adds dedicated admin
+accounts and hash-only sessions, preserving PASSENGER-only authentication.
+It was applied locally; no owner administrator, operating data or seeds were added.
+
+Admin authentication uses shared Argon2id policy, HttpOnly cookies, absolute expiry,
+server logout, exact-origin/custom-header CSRF protection and IP/email throttling.
+The first-admin command is development/loopback-only, accepts masked PowerShell
+input over stdin, locks out duplicate provisioning and has no HTTP equivalent.
+
+Dashboard summaries use actual stored vehicles/routes and fresh measurements plus
+receipt timestamps. DEMO/SIMULATED vehicles remain labeled and excluded from
+operational counts. Physical-device counts and route assignments are unavailable
+because those registries/relations do not exist. No credential counts masquerade
+as physical devices. Stale availability becomes UNKNOWN; ETA remains unavailable.
+
+Jeepneys, Routes, IoT Devices and Live Monitoring are Coming soon placeholders.
+Settings shows identity/session information and logout. No CRUD, driver accounts,
+hardware, passenger UI changes or deployment is introduced. Backend/real PostgreSQL
+and frontend checks passed; browser checks covered login desktop/mobile and outage
+layouts. Owner login and authenticated dashboard manual visual acceptance remain
+pending. See [ADMIN_WEB.md](ADMIN_WEB.md) for exact setup, security and test scope.

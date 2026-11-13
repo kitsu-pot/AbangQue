@@ -15,10 +15,10 @@ export class PostgresRepository {
   constructor(pool) { this.pool = pool; }
   async health() { await this.pool.query('SELECT 1'); }
   async list(includeDemo, includeSimulated = false) {
-    return (await this.pool.query(selection + ' WHERE (j.source = \'device\' OR ($1 AND j.source = \'demo\') OR ($2 AND j.source = \'simulated\')) ORDER BY j.id', [includeDemo, includeSimulated])).rows;
+    return (await this.pool.query(selection + ' WHERE j.active AND (j.source = \'device\' OR ($1 AND j.source = \'demo\') OR ($2 AND j.source = \'simulated\')) ORDER BY j.id', [includeDemo, includeSimulated])).rows;
   }
   async get(id, includeDemo, includeSimulated = false) {
-    return (await this.pool.query(selection + ' WHERE j.id = $1 AND (j.source = \'device\' OR ($2 AND j.source = \'demo\') OR ($3 AND j.source = \'simulated\'))', [id, includeDemo, includeSimulated])).rows[0];
+    return (await this.pool.query(selection + ' WHERE j.active AND j.id = $1 AND (j.source = \'device\' OR ($2 AND j.source = \'demo\') OR ($3 AND j.source = \'simulated\'))', [id, includeDemo, includeSimulated])).rows[0];
   }
   async credential(id) {
     return (await this.pool.query('SELECT id, jeepney_id, source, secret_hash, revoked_at FROM device_credentials WHERE id = $1', [id])).rows[0];

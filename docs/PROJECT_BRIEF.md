@@ -1,9 +1,10 @@
 # AbangQue — Project brief
 
-Current phase update (2026-11-12): the owner explicitly authorized the separate
-admin web foundation. See section 22 and [ADMIN_WEB.md](ADMIN_WEB.md). Earlier
-admin deferral notes below are historical; full management modules and deployment
-remain outside the authorized foundation scope.
+Current phase update (2026-11-13): the owner explicitly authorized the separate
+admin web and Phase 3 Jeepney Management. See sections 22–23,
+[ADMIN_WEB.md](ADMIN_WEB.md) and [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md).
+Earlier admin deferral notes below are historical. Route/IoT management and
+deployment remain outside this phase.
 
 GitHub repository: https://github.com/kitsu-pot/AbangQue
 
@@ -579,3 +580,37 @@ hardware, passenger UI changes or deployment is introduced. Backend/real Postgre
 and frontend checks passed; browser checks covered login desktop/mobile and outage
 layouts. Owner login and authenticated dashboard manual visual acceptance remain
 pending. See [ADMIN_WEB.md](ADMIN_WEB.md) for exact setup, security and test scope.
+
+## 23. Admin Jeepney Management (2026-11-13)
+
+Checkpoint `checkpoint/jeepney-management-2026-11-13` preserves `4d7be55`. The owner
+requested working registration, editing, route assignment, activation, details,
+search/filter/pagination and compatibility tests. Jeepneys is now functional in
+the existing admin web. Route/IoT CRUD, driver accounts, deployment and physical
+hardware remain excluded.
+
+Migration 006 adds administrative metadata, active state, optional single current
+registered-route assignment and version conflict protection to existing jeepneys.
+Identifiers stay immutable; telemetry, credentials and provenance are preserved.
+No operating routes, vehicles, GPS reports or owner credentials are seeded.
+Plate metadata is optional and not uniquely constrained pending verified policy.
+
+Admin-only APIs reuse existing cookie/role/CSRF checks and parameterized queries.
+Route UUID/direction and active eligibility are checked transactionally. Inactive
+assigned routes can be retained during unrelated edits but cannot be newly assigned.
+Deactivation removes current passenger API visibility/assignments without deleting
+history or stopping authenticated device ingestion. Reactivation cannot refresh old
+GPS or write AVAILABLE. Public route responses retain the existing Flutter contract;
+no Dart change was needed. Offline cached records only learn changes after refresh.
+
+Dashboard real-registration counts include inactive records; operational freshness
+and driver-status counts include only active real vehicles. Details label historical
+status and separate measurement/communication times. No seats, counts of passengers,
+admin driver-status controls or ETA estimates were added.
+
+Real PostgreSQL and frontend/backend suites exercise the management flows and
+passenger/device regressions. Actual browser QA used a temporary isolated schema
+and labeled test vehicle/admin at desktop/mobile widths, then removed that schema.
+It does not establish owner login, phone acceptance or physical GPS/LTE operation.
+See [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md) for changed files, exact commands,
+test scope, migration/application status and remaining decisions.

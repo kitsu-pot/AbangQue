@@ -128,8 +128,8 @@ test("mobile navigation, sidebar collapse, planned sections and settings/logout 
     screen.getByRole("button", { name: "Open navigation" }),
   );
   const dialog = screen.getByRole("dialog");
-  await userEvent.click(within(dialog).getByRole("link", { name: /Jeepneys/ }));
-  await screen.findByRole("heading", { name: "Jeepneys, in the next phase." });
+  await userEvent.click(within(dialog).getByRole("link", { name: /Routes/ }));
+  await screen.findByRole("heading", { name: "Routes, in the next phase." });
   expect(screen.queryByRole("dialog")).toBeNull();
   await userEvent.click(screen.getByRole("link", { name: "Settings" }));
   await screen.findByText(session.user.email);
@@ -180,7 +180,9 @@ test("old snapshots cannot continue presenting current availability while offlin
           summary: {
             ...empty.summary,
             available: 7,
-            validUntil: new Date(Date.parse(empty.updatedAt) - 1000).toISOString(),
+            validUntil: new Date(
+              Date.parse(empty.updatedAt) - 1000,
+            ).toISOString(),
           },
         },
   );

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { Dashboard, Session } from "./api";
+import { JeepneyManagement } from "./JeepneyManagement";
 
 const sections = [
   "Dashboard",
@@ -377,7 +378,7 @@ export function App() {
           >
             <Icon name={symbols[index]} />
             <span>{item}</span>
-            {index > 0 && index < 5 && <small>SOON</small>}
+            {index > 1 && index < 5 && <small>SOON</small>}
           </a>
         ))}
       </nav>
@@ -385,10 +386,14 @@ export function App() {
   }
   return (
     <div className={"app-shell" + (collapsed ? " compact" : "")}>
-      <a href="#main" className="skip-link" onClick={(event) => {
-        event.preventDefault();
-        document.getElementById('main')?.focus();
-      }}>
+      <a
+        href="#main"
+        className="skip-link"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("main")?.focus();
+        }}
+      >
         Skip to content
       </a>
       <aside className="sidebar">
@@ -492,6 +497,8 @@ export function App() {
           )}
           {section === "Dashboard" ? (
             <Overview onExpire={expire} navigate={navigate} />
+          ) : section === "Jeepneys" ? (
+            <JeepneyManagement onExpire={expire} />
           ) : section === "Settings" ? (
             <>
               <PageHeading
@@ -645,7 +652,7 @@ function Overview({
       "Registered Jeepneys",
       current?.summary.jeepneys,
       "vehicle",
-      "Vehicles · excludes DEMO records",
+      "Active and inactive · excludes DEMO",
     ],
     [
       "Registered Routes",
@@ -663,7 +670,7 @@ function Overview({
       "Fresh Location Reports",
       current?.summary.fresh,
       "signal",
-      "Vehicles with recent accepted reports",
+      "Active vehicles with recent reports",
     ],
   ] as const;
   return (
@@ -848,6 +855,9 @@ function Overview({
                     <td>
                       <strong>{row.id}</strong>
                       <small>{row.name}</small>
+                      {row.active === false && (
+                        <small>Inactive registration</small>
+                      )}
                       <span
                         className={
                           row.source === "device"
@@ -862,7 +872,7 @@ function Overview({
                             : "DEMO / SIMULATED"}
                       </span>
                     </td>
-                    <td>{row.route ?? "Not available"}</td>
+                    <td>{row.route ?? "Unassigned"}</td>
                     <td>{date(row.timestamp)}</td>
                     <td>{date(row.lastSeenAt)}</td>
                     <td>
@@ -895,8 +905,8 @@ function Overview({
           </div>
         )}
         <div className="panel-footnote">
-          Route assignments and a physical-device registry are planned for a
-          later phase.
+          Manage registered route assignments in Jeepneys. A physical-device
+          registry is planned for a later phase.
         </div>
       </section>
       <section className="quick-navigation">
@@ -917,7 +927,9 @@ function Overview({
               <Icon name={symbols[sections.indexOf(item)]} />
               <span>
                 {item}
-                <small>Coming soon</small>
+                <small>
+                  {item === "Jeepneys" ? "Manage records" : "Coming soon"}
+                </small>
               </span>
               <Icon name="arrow" />
             </button>

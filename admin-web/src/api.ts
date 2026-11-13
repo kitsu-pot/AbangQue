@@ -6,6 +6,7 @@ export type Activity = {
   id: string;
   name: string;
   source: "device" | "demo" | "simulated";
+  active?: boolean;
   route: string | null;
   timestamp: string | null;
   lastSeenAt: string | null;
@@ -32,6 +33,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code = "",
+    public fields: { field: string; message: string }[] = [],
   ) {
     super(message);
   }
@@ -42,11 +45,15 @@ if (origin) {
   if (url.origin !== origin || url.protocol !== "https:")
     throw new Error("Admin API origin must be an HTTPS origin");
 }
-export async function api<T>(path: string, body?: object): Promise<T> {
+export async function api<T>(
+  path: string,
+  body?: object,
+  method: "POST" | "PUT" = "POST",
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(origin + "/api/admin" + path, {
-      method: body ? "POST" : "GET",
+      method: body ? method : "GET",
       credentials: "include",
       cache: "no-store",
       redirect: "error",
@@ -62,7 +69,8 @@ export async function api<T>(path: string, body?: object): Promise<T> {
       "Unable to reach the server. Check your connection and try again.",
     );
   }
-  if (!response.ok)
+  if (!response.ok) {
+    const failure = await response.json().catch(() => ({}));
     throw new ApiError(
       response.status,
       response.status === 429
@@ -70,7 +78,10 @@ export async function api<T>(path: string, body?: object): Promise<T> {
         : response.status === 401
           ? "Your session has ended. Please sign in again."
           : "The server could not complete this request. Please try again.",
+      typeof failure.error === "string" ? failure.error : "",
+      Array.isArray(failure.fields) ? failure.fields : [],
     );
+  }
   if (response.status === 204) return undefined as T;
   try {
     return (await response.json()).data as T;

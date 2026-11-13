@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
-const reports = `SELECT j.id, j.name, j.source, u.recorded_at, u.status, seen.last_seen_at,
+const reports = `SELECT j.id, j.name, j.source, j.active, r.origin, r.destination, r.active AS route_active, u.recorded_at, u.status, seen.last_seen_at,
   COALESCE(u.recorded_at <= $1::timestamptz AND seen.last_seen_at <= $1::timestamptz
     AND u.recorded_at > $1::timestamptz - $2 * interval '1 second'
     AND seen.last_seen_at > $1::timestamptz - $2 * interval '1 second', false) AS fresh
   FROM jeepneys j
+  LEFT JOIN registered_routes r ON r.id=j.route_id
   LEFT JOIN LATERAL (SELECT recorded_at, status FROM location_status_updates
     WHERE jeepney_id=j.id ORDER BY recorded_at DESC, id DESC LIMIT 1) u ON true
   LEFT JOIN LATERAL (SELECT received_at AS last_seen_at FROM location_status_updates
@@ -49,10 +50,10 @@ export class AdminRepository {
       const counts = (await client.query(`WITH reports AS (${reports}) SELECT
         count(*) FILTER (WHERE source='device')::int AS jeepneys,
         count(*) FILTER (WHERE source<>'device')::int AS "demoJeepneys",
-        count(*) FILTER (WHERE source='device' AND fresh)::int AS fresh,
-        count(*) FILTER (WHERE source='device' AND NOT fresh)::int AS "staleOrMissing",
-        count(*) FILTER (WHERE source='device' AND fresh AND status='FULL')::int AS full,
-        count(*) FILTER (WHERE source='device' AND fresh AND status='AVAILABLE')::int AS available,
+        count(*) FILTER (WHERE source='device' AND active AND fresh)::int AS fresh,
+        count(*) FILTER (WHERE source='device' AND active AND NOT fresh)::int AS "staleOrMissing",
+        count(*) FILTER (WHERE source='device' AND active AND fresh AND status='FULL')::int AS full,
+        count(*) FILTER (WHERE source='device' AND active AND fresh AND status='AVAILABLE')::int AS available,
         min(LEAST(recorded_at,last_seen_at) + $2 * interval '1 second')
           FILTER (WHERE fresh) AS "validUntil"
         FROM reports`, [now, staleSeconds])).rows[0];
@@ -62,10 +63,11 @@ export class AdminRepository {
       await client.query('COMMIT');
       return { updatedAt: now.toISOString(), staleAfterSeconds: staleSeconds,
         summary: { ...counts, routes, devices: null },
-        recent: recent.map(r => ({ id: r.id, name: r.name, source: r.source, route: null,
+        recent: recent.map(r => ({ id: r.id, name: r.name, source: r.source, active: r.active,
+          route: r.origin ? r.origin + ' → ' + r.destination + (r.route_active ? '' : ' (inactive)') : null,
           timestamp: r.recorded_at?.toISOString() ?? null, lastSeenAt: r.last_seen_at?.toISOString() ?? null,
           freshness: !r.recorded_at ? 'MISSING' : r.fresh ? 'FRESH' : 'STALE',
-          status: r.source === 'device' && r.fresh ? r.status : 'UNKNOWN' })) };
+          status: r.active && r.source === 'device' && r.fresh ? r.status : 'UNKNOWN' })) };
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }

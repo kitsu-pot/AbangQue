@@ -1,8 +1,13 @@
 export class FavoriteRepository {
   constructor(pool) { this.pool = pool; }
   async catalog() {
-    const { rows } = await this.pool.query('SELECT id, origin, destination FROM registered_routes WHERE active ORDER BY origin, destination, id');
-    return { routes: rows.map(r => ({ ...r, isDemo: false })), assignments: [] };
+    // One SQL snapshot keeps route identities and eligible assignments consistent.
+    const { rows } = await this.pool.query(`SELECT r.id,r.origin,r.destination,
+      COALESCE(array_agg(j.id ORDER BY j.id) FILTER (WHERE j.id IS NOT NULL), '{}') AS jeepney_ids
+      FROM registered_routes r LEFT JOIN jeepneys j ON j.route_id=r.id AND j.active AND j.source='device'
+      WHERE r.active GROUP BY r.id ORDER BY r.origin,r.destination,r.id`);
+    return { routes: rows.map(r => ({ id: r.id, origin: r.origin, destination: r.destination, isDemo: false })),
+      assignments: rows.flatMap(r => r.jeepney_ids.map(id => ({ routeId: r.id, jeepneyId: id }))) };
   }
   async list(passengerId) {
     const { rows } = await this.pool.query(`SELECT f.route_key AS "routeId",

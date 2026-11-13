@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { applyTestMigrations } from '../test-support/migrations.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
 import pg from 'pg';
@@ -20,8 +20,7 @@ test('real PostgreSQL account management and transactional privacy', { skip: pro
   try {
     await admin.query(`CREATE SCHEMA "${schema}"`);
     pool = new pg.Pool({ connectionString: config.DATABASE_URL, options: `-c search_path=${schema}`, connectionTimeoutMillis: 5000 });
-    for (const file of ['001_initial.sql', '002_passenger_auth.sql', '003_simulated_device_source.sql', '004_favorite_routes.sql'])
-      await pool.query(await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8'));
+    await applyTestMigrations(pool);
     const passenger = new PassengerRepository(pool);
     const app = createApp({ repository: new PostgresRepository(pool), passengerRepository: passenger, favoriteRepository: new FavoriteRepository(pool), config });
     const initial = randomBytes(24).toString('base64url'), changed = randomBytes(24).toString('base64url');

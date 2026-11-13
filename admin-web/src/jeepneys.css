@@ -1,0 +1,318 @@
+.vehicle-management {
+  min-width: 0;
+}
+.vehicle-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 26px;
+  margin-bottom: 22px;
+  border: 1px solid #dce8df;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #e6f3e9, #fafcf8);
+}
+.vehicle-summary > strong {
+  font-size: 38px;
+  font-weight: 600;
+  color: #075643;
+}
+.vehicle-summary small {
+  display: block;
+  font-size: 12px;
+  color: #526c5e;
+  margin-top: 5px;
+}
+.vehicle-summary > button {
+  margin-left: auto;
+}
+.vehicle-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) auto minmax(140px, 0.7fr) minmax(
+      190px,
+      1fr
+    );
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 22px;
+}
+.vehicle-filters label,
+.vehicle-form-grid label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.vehicle-filters input,
+.vehicle-filters select,
+.vehicle-form-grid input,
+.vehicle-form-grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid #bdcfc2;
+  border-radius: 9px;
+  color: #214d3c;
+  font: inherit;
+}
+.vehicle-filters select,
+.vehicle-form-grid select {
+  white-space: normal;
+}
+.vehicle-list-heading {
+  padding: 24px;
+}
+.vehicle-desktop-table td {
+  min-width: 100px;
+}
+.vehicle-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vehicle-actions .button {
+  font-size: 12px;
+  min-height: 42px;
+  padding: 9px 12px;
+}
+.vehicle-text-button {
+  min-height: 42px;
+  padding: 8px;
+  color: #486952;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 12px;
+}
+.vehicle-demo {
+  display: inline-block;
+  background: #fff1d6;
+  color: #7e581b;
+  font-size: 10px;
+  font-weight: 650;
+  border-radius: 5px;
+  padding: 4px 6px;
+  margin-top: 6px;
+}
+.vehicle-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px;
+  border-top: 1px solid #e5eee6;
+  font-size: 13px;
+}
+.vehicle-guidance {
+  font-size: 12px;
+  color: #556c5e;
+  padding: 20px 2px;
+  max-width: 900px;
+}
+.vehicle-mobile-cards {
+  display: none;
+}
+.vehicle-modal {
+  margin: auto;
+  border: 1px solid #d2e3d8;
+  border-radius: 20px;
+  max-width: calc(100vw - 32px);
+  width: 720px;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  background: #fbfdf9;
+  color: #173f34;
+  box-shadow: 0 25px 100px #00261933;
+  overflow: auto;
+}
+.vehicle-modal::backdrop {
+  background: #0c302873;
+  backdrop-filter: blur(2px);
+}
+.vehicle-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 26px;
+  border-bottom: 1px solid #e0ebe2;
+  background: #f0f7ef;
+}
+.vehicle-modal-header h2 {
+  overflow-wrap: anywhere;
+}
+.vehicle-modal-header .icon-button {
+  font-size: 28px;
+}
+.vehicle-modal-body {
+  padding: 26px;
+}
+.vehicle-form-intro {
+  font-size: 13px;
+  color: #556d5e;
+  margin-bottom: 24px;
+}
+.vehicle-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.vehicle-form-wide {
+  grid-column: 1/-1;
+}
+.vehicle-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
+  flex-wrap: wrap;
+}
+.vehicle-form-grid input[readonly] {
+  background: #edf3ed;
+  color: #627363;
+}
+.vehicle-form-grid [aria-invalid="true"] {
+  border-color: #b45335;
+}
+.field-error {
+  color: #9b3c26;
+  font-size: 12px;
+  margin-top: 7px;
+}
+.field-error button {
+  text-decoration: underline;
+}
+.field-help {
+  font-size: 12px;
+  color: #5a7161;
+  margin-top: 7px;
+}
+.vehicle-modal .error {
+  margin-top: 20px;
+}
+.vehicle-details {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) 1.4fr;
+  gap: 16px 25px;
+  margin-top: 18px;
+  font-size: 14px;
+}
+.vehicle-details dt {
+  color: #5c7462;
+}
+.vehicle-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.vehicle-modal-body > p {
+  line-height: 1.8;
+}
+.vehicle-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vehicle-card-heading h3 {
+  overflow-wrap: anywhere;
+}
+.vehicle-mobile-cards dl {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 13px;
+  margin: 18px 0;
+}
+.vehicle-mobile-cards dt {
+  color: #617865;
+}
+.vehicle-mobile-cards dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .vehicle-filters {
+    grid-template-columns: 1fr auto;
+  }
+  .vehicle-filters > div:last-child {
+    grid-column: 1/-1;
+  }
+  .vehicle-desktop-table {
+    display: none;
+  }
+  .vehicle-mobile-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+  .vehicle-mobile-cards article {
+    padding: 22px;
+    border-top: 1px solid #e2ebe2;
+    border-right: 1px solid #e2ebe2;
+  }
+  .vehicle-mobile-cards article > p {
+    font-size: 13px;
+    color: #57705b;
+  }
+  .vehicle-summary {
+    flex-wrap: wrap;
+  }
+  .vehicle-summary > button {
+    margin-left: 0;
+  }
+  .vehicle-summary > span {
+    flex: 1;
+  }
+}
+@media (max-width: 620px) {
+  .vehicle-mobile-cards {
+    display: block;
+  }
+  .vehicle-filters {
+    grid-template-columns: 1fr auto;
+  }
+  .vehicle-filters > div:nth-last-child(2) {
+    grid-column: 1/-1;
+  }
+  .vehicle-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .vehicle-details {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+  .vehicle-details dd {
+    margin-bottom: 12px;
+  }
+  .vehicle-modal {
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+  .vehicle-modal-header,
+  .vehicle-modal-body {
+    padding: 18px;
+  }
+  .vehicle-summary {
+    padding: 20px;
+    align-items: start;
+  }
+  .vehicle-summary > button {
+    width: 100%;
+  }
+  .vehicle-pagination {
+    padding: 16px 12px;
+    font-size: 12px;
+  }
+  .vehicle-pagination .button {
+    padding: 10px;
+  }
+  .vehicle-filters input {
+    font-size: 16px;
+  }
+  .vehicle-form-grid input,
+  .vehicle-form-grid select {
+    font-size: 16px;
+  }
+}

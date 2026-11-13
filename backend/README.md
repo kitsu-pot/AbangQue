@@ -311,9 +311,13 @@ errors, session behavior, privacy/retention boundaries and the phone checklist.
 `npm run test:postgres` includes the new isolated account-management SQL/API suite,
 with forced rollback, concurrent requests and account-isolation regressions.
 
-## Administrator web foundation
+## Administrator web and Jeepney Management
 
-The React admin frontend uses this same API and database. Apply migration 005,
-provision the first account with `npm run admin:provision` in local development,
-and restart the API. See [ADMIN_WEB.md](../docs/ADMIN_WEB.md) for exact PowerShell
+The React admin frontend uses this same API and database. Run `npm run migrate`
+through migration 006 and restart the API. If no admin exists, provision the first
+account with `npm run admin:provision` in local development.
+See [ADMIN_WEB.md](../docs/ADMIN_WEB.md) for exact PowerShell
 commands, cookie/CSRF configuration, endpoints, testing and future HTTPS hosting.
+See [JEEPNEY_MANAGEMENT.md](../docs/JEEPNEY_MANAGEMENT.md) for the admin management
+endpoints, optional route assignments, reversible activation, preserved device
+ingestion, passenger filtering and PostgreSQL verification. No seeds are required.

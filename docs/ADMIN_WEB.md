@@ -1,9 +1,11 @@
 # AbangQue admin web foundation
 
-Implemented 2026-11-12. This phase adds administrator authentication, the overview,
-navigation and read-only account/session Settings. Jeepneys, Routes, IoT Devices
-and Live Monitoring are explicitly **Coming soon**. No CRUD, driver accounts,
-hardware integration, ETA calculation or deployment is included.
+Foundation implemented 2026-11-12; Jeepney Management added 2026-11-13. The admin
+web includes authentication, overview, navigation, account/session Settings and
+vehicle registration/editing/route assignment/activation. See
+[JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md) for Phase 3. Routes, IoT Devices and
+Live Monitoring remain **Coming soon**. No driver accounts, hardware integration,
+ETA calculation or deployment is included.
 
 Checkpoint: `checkpoint/admin-foundation-2026-11-12` at `db859dc`.
 
@@ -19,7 +21,6 @@ Terminal 1:
 Set-Location C:\Users\Administrator\Projects\jeeplink\backend
 npm ci
 npm run migrate
-npm run admin:provision
 npm start
 ```
 
@@ -47,7 +48,7 @@ strict so Vite cannot silently move to an untrusted origin. No CORS wildcard is 
 
 ### First administrator
 
-`npm run admin:provision` invokes the tracked PowerShell wrapper. It prompts for
+If no administrator exists, `npm run admin:provision` invokes the tracked PowerShell wrapper. It prompts for
 email, masked password and masked confirmation. Use a unique password of 15–128
 characters; repeated-character and a few known weak values are rejected. There
 is no default password, account or public registration page.
@@ -145,10 +146,14 @@ no Domain. Local development uses `abangque_admin` without Secure for loopback H
 - Registered Devices displays **Not available**: `device_credentials` contains
   credentials, potentially multiple/revoked credentials per vehicle, not a physical
   device registry. No count of credentials is mislabeled as devices.
-- Route assignment is **Not available** because no real assignment relation exists.
+- Route assignment is managed in Jeepneys through migration 006's optional route
+  foreign key; unassigned vehicles are labeled Unassigned.
 - Fresh reports require both latest measurement time and latest communication time
   to be present, no later than the server clock, and younger than STALE_AFTER_SECONDS.
   Equality with the threshold is stale. Missing, old and future reports are not fresh.
+- Registration totals include active/inactive real vehicles. Fresh, stale/missing,
+  FULL and AVAILABLE counts include active real vehicles only. Inactive registrations
+  remain labeled in recent activity with UNKNOWN driver status.
 - FULL and AVAILABLE count only vehicles with fresh `source=device` reports. Old,
   missing, DEMO and SIMULATED availability is UNKNOWN. No seat or occupancy counts.
 - DEMO/SIMULATED records remain visible with clear source labels and a separate
@@ -193,6 +198,7 @@ npm test
 npm run test:postgres
 Set-Location ..\admin-web
 npm run typecheck
+npm run lint
 npm test
 npm run build
 ```
@@ -201,10 +207,10 @@ PostgreSQL integration tests use random isolated schemas in the configured datab
 and drop those test schemas afterwards. The database role needs CREATE SCHEMA.
 They never seed production/public operating data or provision an owner admin.
 The normal backend suite intentionally skips real database suites; use
-`test:postgres` to execute them. No frontend lint command is configured; TypeScript,
-Vitest and the production build are the configured checks.
+`test:postgres` to execute them. Phase 3 adds ESLint alongside TypeScript, Vitest
+and the production build; current results are recorded in JEEPNEY_MANAGEMENT.md.
 
-Observed this task: backend check passed, 45 database-free tests passed (five
+Historical Phase 2 results: backend check passed, 45 database-free tests passed (five
 database suites skipped); all 42 PostgreSQL tests passed. Frontend TypeScript and
 production build passed; all 10 frontend tests passed (two test files).
 Manual browser inspection covered desktop (1440px) and mobile (390px) login layouts,

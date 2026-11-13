@@ -78,11 +78,13 @@ register a route by submitting free-text municipality names.
 **No operating routes are seeded.** The inspected backend previously had only an
 empty/opt-in DEMO catalog, so a minimal stored route catalog is necessary for real
 favorite references. GET /api/routes now reads active registered records and keeps
-the separately gated simulator fixture. Real route assignments remain empty.
+the separately gated simulator fixture. Phase 3
+[Jeepney Management](JEEPNEY_MANAGEMENT.md) now adds explicit assignments for active
+vehicles on active registered routes without changing the favorites API contract.
 The existing simulator assignment stays explicitly DEMO and is not saveable.
 
-Administrator registration/verification, permissions, route-editing tools and
-jeepney-assignment management remain future work. Until authorized operators supply
+Administrator authentication and jeepney-assignment management now exist;
+route creation/verification and editing tools remain future work. Until authorized operators supply
 verified records, the normal app correctly shows No registered routes available
 yet. A passenger choosing municipalities never creates such a record. Do not copy
 the automated test fixtures into the application database as operating routes.

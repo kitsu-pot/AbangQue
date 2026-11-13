@@ -3,6 +3,7 @@ import { rateLimit } from 'express-rate-limit';
 import { randomBytes } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { z } from 'zod';
+import { adminJeepneyRouter } from './admin-jeepneys.js';
 import { hashToken, passwordOptions, passwordWork } from './passenger-auth.js';
 
 export const adminCredentials = z.object({
@@ -12,7 +13,7 @@ export const adminCredentials = z.object({
 }).strict();
 const loginInput = adminCredentials.extend({ password: z.string().min(1).max(128) });
 let dummyHash;
-export function adminRouter({ repository, config, clock = Date.now }) {
+export function adminRouter({ repository, jeepneyRepository, config, clock = Date.now }) {
   const router = Router();
   const secure = config.NODE_ENV === 'production';
   const cookieName = secure ? '__Host-abangque_admin' : 'abangque_admin';
@@ -33,7 +34,7 @@ export function adminRouter({ repository, config, clock = Date.now }) {
       res.set('Access-Control-Allow-Credentials', 'true');
     }
     if (req.method === 'OPTIONS') {
-      res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+      res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
       res.set('Access-Control-Allow-Headers', 'Content-Type,X-AbangQue-Admin');
       return res.sendStatus(204);
     }
@@ -85,5 +86,6 @@ export function adminRouter({ repository, config, clock = Date.now }) {
     user: { id: req.admin.id, email: req.admin.email, role: 'ADMIN' }, expiresAt: req.admin.expires_at.toISOString(),
   } }));
   router.get('/dashboard', async (_req, res) => res.json({ data: await repository.dashboard(new Date(clock()), config.STALE_AFTER_SECONDS) }));
+  if (jeepneyRepository) router.use(adminJeepneyRouter({ repository: jeepneyRepository, config, clock }));
   return router;
 }

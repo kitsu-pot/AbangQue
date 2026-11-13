@@ -1,9 +1,10 @@
 # AbangQue passenger app
 
-The separate **Admin Web Dashboard foundation** is in `admin-web/`. See
+The separate **Admin Web Dashboard** is in `admin-web/`. See
 [admin setup, secure first-account provisioning and verification](docs/ADMIN_WEB.md).
-It reuses the Express/PostgreSQL backend and requires migration 005. No public
-admin registration or management CRUD is included.
+It reuses the Express/PostgreSQL backend. [Jeepney Management](docs/JEEPNEY_MANAGEMENT.md)
+adds registration, editing, route assignment and activation with migration 006.
+Route/IoT management and public administrator registration remain unavailable.
 
 A Material 3 Flutter passenger application for Marinduque, Philippines, with an
 original emerald/mint/cream Liquid Glass-inspired interface. English is the
@@ -67,7 +68,7 @@ No device/database credentials belong in Flutter or dart-define.
   enabled GPS simulator has its own labeled, unsaveable test direction.
 - Favorites: account-scoped save/remove, exact-direction reopening, refresh/retry
   and unavailable-route states; no extra navigation tab.
-- Future assigned results: route-scoped ID/name search, report cards, details,
+- Assigned results: route-scoped ID/name search, report cards, details,
   source/status labels, timestamps and last coordinates.
 - Guide: English explanations of direction-specific routes and manual reports.
 - Floating glass navigation, OpenStreetMap controls/attribution, pull-to-refresh,

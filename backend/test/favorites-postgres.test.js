@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { applyTestMigrations } from '../test-support/migrations.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import request from 'supertest';
@@ -19,8 +19,7 @@ test('real PostgreSQL favorite routes', { skip: process.env.AUTH_INTEGRATION !==
   try {
     await admin.query(`CREATE SCHEMA "${schema}"`);
     pool = new pg.Pool({ connectionString: config.DATABASE_URL, options: `-c search_path=${schema}`, connectionTimeoutMillis: 5000 });
-    for (const file of ['001_initial.sql', '002_passenger_auth.sql', '003_simulated_device_source.sql', '004_favorite_routes.sql'])
-      await pool.query(await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8'));
+    await applyTestMigrations(pool);
     const makeApp = () => createApp({ repository: new PostgresRepository(pool), passengerRepository: new PassengerRepository(pool), favoriteRepository: new FavoriteRepository(pool), config });
     let app = makeApp();
     const password = randomBytes(24).toString('base64url');

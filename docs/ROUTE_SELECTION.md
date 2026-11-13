@@ -2,6 +2,16 @@
 
 Implemented 2026-10-31. Pre-change Git checkpoint: `a2b3d22` (completed glass UI).
 
+## Admin assignment integration (2026-11-13)
+
+[Jeepney Management](JEEPNEY_MANAGEMENT.md) now supplies real explicit assignments
+through migration 006's optional vehicle route foreign key. Only active vehicles
+on active registered routes enter the public assignment list. Direction changes
+and deactivation take effect after a successful passenger refresh; cached records
+retain the existing offline/UNKNOWN rules. No Dart changes or operating routes
+were added. Route creation/verification tools remain a later phase. Earlier
+assignment-deferral notes below describe the state before this integration.
+
 ## Offline extension (2026-11-09)
 
 Routes and vehicle reports now refresh together with controlled retry/backoff.

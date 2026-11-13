@@ -115,8 +115,9 @@ with the desired defines; hot reload does not change compile-time configuration.
    GET /api/routes reads active registered records. Its table starts empty, so
    **No registered routes available yet.** is expected even if GET /api/jeepneys returns
    two historical records. There are no global All/Available filters.
-2. Choose two different municipalities and tap Find Jeepneys. No route is
-   invented, no existing demo is assigned, and no fleet cards/markers appear.
+2. Choose two different municipalities and tap Find Jeepneys. Only active vehicles
+   explicitly assigned to that registered direction appear. Without registered
+   routes/assignments, no fleet cards/markers appear; no routes are invented.
    Swapping or changing the selection clears earlier journey results.
 3. Map still renders OpenStreetMap geography and controls, with no unassigned
    vehicle markers. No route lines, terminals or stops are inferred.
@@ -126,10 +127,11 @@ with the desired defines; hot reload does not change compile-time configuration.
    appears. Valid cached routes and last known markers remain, with CACHED / UNKNOWN
    status. With no cache, a friendly empty/error state appears. Restart the backend
    and wait for automatic recovery or tap retry; no simulator substitutes.
-6. Future explicit route assignments will enable route-specific cards/details:
-   historical DEMO remains STALE / UNKNOWN, ETA remains unavailable, and null
-   positions have no marker. This future result path is exercised using injected
-   test-only catalogs, not fabricated production routes.
+6. Admin Jeepney Management now supplies explicit registered-route assignments.
+   After a successful refresh, inactive vehicles are excluded and changed routes
+   replace old assignments. Historical DEMO remains STALE / UNKNOWN, ETA remains
+   unavailable, and null positions have no marker. See
+   [Jeepney Management verification](JEEPNEY_MANAGEMENT.md) for exact API checks.
 
 See [journey-selection architecture](ROUTE_SELECTION.md) for the route-service
 boundary and remaining backend/admin work.

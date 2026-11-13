@@ -1,0 +1,95 @@
+---
+title: AbangQue Database Entity-Relationship Diagram
+---
+erDiagram
+    JEEPNEYS {
+        varchar id PK
+        varchar name
+        text source
+        boolean active
+        varchar plate_number "nullable"
+        varchar description
+        text administrative_notes
+        uuid route_id FK "nullable"
+        integer version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    REGISTERED_ROUTES {
+        uuid id PK
+        text origin
+        text destination
+        boolean active
+        timestamptz created_at
+    }
+    DEVICE_CREDENTIALS {
+        uuid id PK
+        varchar jeepney_id FK
+        text source
+        char secret_hash
+        timestamptz created_at
+        timestamptz revoked_at "nullable"
+    }
+    LOCATION_STATUS_UPDATES {
+        bigint id PK
+        varchar jeepney_id FK
+        text source
+        uuid credential_id FK "nullable for DEMO"
+        double latitude
+        double longitude
+        text status
+        timestamptz recorded_at
+        timestamptz received_at
+    }
+    PASSENGER_ACCOUNTS {
+        uuid id PK
+        varchar full_name
+        varchar email UK
+        text password_hash
+        text role
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    PASSENGER_SESSIONS {
+        char token_hash PK
+        uuid passenger_id FK
+        timestamptz created_at
+        timestamptz expires_at
+        timestamptz revoked_at "nullable"
+    }
+    PASSENGER_FAVORITE_ROUTES {
+        uuid passenger_id PK, FK
+        uuid route_key PK
+        uuid route_id FK "nullable after route deletion"
+        text origin
+        text destination
+        timestamptz created_at
+    }
+    ADMIN_ACCOUNTS {
+        uuid id PK
+        varchar email UK
+        text password_hash
+        text role
+        timestamptz created_at
+    }
+    ADMIN_SESSIONS {
+        char token_hash PK
+        uuid admin_id FK
+        timestamptz created_at
+        timestamptz expires_at
+        timestamptz revoked_at "nullable"
+    }
+    SCHEMA_MIGRATIONS {
+        text name PK
+        text checksum
+        timestamptz applied_at
+    }
+
+    REGISTERED_ROUTES o|--o{ JEEPNEYS : "optional current assignment"
+    JEEPNEYS ||--o{ DEVICE_CREDENTIALS : "vehicle and source"
+    JEEPNEYS ||--o{ LOCATION_STATUS_UPDATES : "vehicle and source"
+    DEVICE_CREDENTIALS o|--o{ LOCATION_STATUS_UPDATES : "device updates only"
+    PASSENGER_ACCOUNTS ||--o{ PASSENGER_SESSIONS : "owns"
+    PASSENGER_ACCOUNTS ||--o{ PASSENGER_FAVORITE_ROUTES : "saves"
+    REGISTERED_ROUTES o|--o{ PASSENGER_FAVORITE_ROUTES : "optional live route"
+    ADMIN_ACCOUNTS ||--o{ ADMIN_SESSIONS : "owns"

@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1390" viewBox="0 0 1920 1390" role="img" aria-labelledby="title desc">
+  <title id="title">AbangQue database entity-relationship diagram</title>
+  <desc id="desc">Implemented PostgreSQL schema through migration 006. Shows jeepneys, registered routes, device credentials, location and status updates, passenger and administrator accounts and sessions, passenger favorite routes, and the schema migration ledger, with primary and foreign keys and their relationships.</desc>
+  <defs>
+    <style>
+      text { font-family: Inter, "Segoe UI", Arial, sans-serif; fill: #19392f; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 17px; fill: #557267; }
+      .box { fill: #fffefa; stroke: #b6cfc1; stroke-width: 2; rx: 14; }
+      .head { fill: #e6f3eb; }
+      .entity { font-size: 20px; font-weight: 700; letter-spacing: .3px; }
+      .field { font-size: 15px; }
+      .note { font-size: 14px; fill: #47665a; }
+      .rel { fill: none; stroke: #5f8875; stroke-width: 2.4; }
+      .rel-label { font-size: 13px; fill: #355d4d; font-weight: 600; paint-order: stroke; stroke: #f7f8f2; stroke-width: 5px; stroke-linejoin: round; }
+      .pill { fill: #f0f5ed; stroke: #d4e1d6; stroke-width: 1; rx: 7; }
+    </style>
+    <marker id="dot" markerWidth="8" markerHeight="8" refX="4" refY="4"><circle cx="4" cy="4" r="3" fill="#5f8875"/></marker>
+  </defs>
+  <rect width="1920" height="1390" fill="#f7f8f2"/>
+  <text x="70" y="68" class="title">AbangQue Database ERD</text>
+  <text x="70" y="101" class="subtitle">Implemented PostgreSQL schema · migrations 001–006 · current as of 13 November 2026</text>
+
+  <!-- Relationships are routed behind the table cards. -->
+  <g class="rel" marker-start="url(#dot)" marker-end="url(#dot)">
+    <path d="M410 285 H485 V205 H570"/>
+    <path d="M410 320 H505 V535 H570"/>
+    <path d="M410 450 H480 V720 H1070 V320 H1100"/>
+    <path d="M970 460 H1100"/>
+    <path d="M410 835 H480 V900 H550"/>
+    <path d="M410 865 H465 V1140 H550"/>
+    <path d="M970 250 H1040 V1010 H990 V1147 H970"/>
+    <path d="M1370 835 H1430 V900 H1480"/>
+  </g>
+  <g class="rel-label">
+    <text x="438" y="195">0..1 route per jeepney</text>
+    <text x="438" y="516">1:N credentials</text>
+    <text x="555" y="710">1:N updates by vehicle/source</text>
+    <text x="980" y="450">0..1 credential per device update</text>
+    <text x="430" y="890">1:N sessions</text>
+    <text x="430" y="1128">1:N favorites</text>
+    <text x="990" y="1074">optional route reference</text>
+    <text x="1384" y="890">1:N sessions</text>
+  </g>
+
+  <!-- Jeepneys -->
+  <g transform="translate(70 145)">
+    <rect class="box" width="340" height="340"/>
+    <path class="head" d="M14 0 H326 Q340 0 340 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">JEEPNEYS</text>
+    <text class="field" x="20" y="82">PK  id : varchar(64)</text>
+    <text class="field" x="20" y="108">name : varchar(120)</text>
+    <text class="field" x="20" y="134">source : text</text>
+    <text class="field" x="20" y="160">active : boolean</text>
+    <text class="field" x="20" y="186">plate_number : varchar(20), nullable</text>
+    <text class="field" x="20" y="212">description : varchar(500)</text>
+    <text class="field" x="20" y="238">administrative_notes : varchar(2000)</text>
+    <text class="field" x="20" y="264">FK  route_id : uuid, nullable</text>
+    <text class="field" x="20" y="290">version : integer</text>
+    <text class="field" x="20" y="316">created_at · updated_at : timestamptz</text>
+  </g>
+
+  <!-- Routes -->
+  <g transform="translate(570 145)">
+    <rect class="box" width="400" height="210"/>
+    <path class="head" d="M14 0 H386 Q400 0 400 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">REGISTERED_ROUTES</text>
+    <text class="field" x="20" y="85">PK  id : uuid</text>
+    <text class="field" x="20" y="115">origin : text</text>
+    <text class="field" x="20" y="145">destination : text</text>
+    <text class="field" x="20" y="175">active : boolean · created_at : timestamptz</text>
+  </g>
+
+  <!-- Device credentials -->
+  <g transform="translate(570 425)">
+    <rect class="box" width="400" height="260"/>
+    <path class="head" d="M14 0 H386 Q400 0 400 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">DEVICE_CREDENTIALS</text>
+    <text class="field" x="20" y="85">PK  id : uuid</text>
+    <text class="field" x="20" y="115">FK  jeepney_id : varchar(64)</text>
+    <text class="field" x="20" y="145">source : text (device or simulated)</text>
+    <text class="field" x="20" y="175">secret_hash : char(64)</text>
+    <text class="field" x="20" y="205">created_at : timestamptz</text>
+    <text class="field" x="20" y="235">revoked_at : timestamptz, nullable</text>
+  </g>
+
+  <!-- Telemetry -->
+  <g transform="translate(1100 145)">
+    <rect class="box" width="430" height="390"/>
+    <path class="head" d="M14 0 H416 Q430 0 430 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">LOCATION_STATUS_UPDATES</text>
+    <text class="field" x="20" y="82">PK  id : bigint</text>
+    <text class="field" x="20" y="109">FK  jeepney_id : varchar(64)</text>
+    <text class="field" x="20" y="136">source : text</text>
+    <text class="field" x="20" y="163">FK  credential_id : uuid, nullable for DEMO</text>
+    <text class="field" x="20" y="190">latitude : double precision</text>
+    <text class="field" x="20" y="217">longitude : double precision</text>
+    <text class="field" x="20" y="244">status : text (FULL or AVAILABLE)</text>
+    <text class="field" x="20" y="271">recorded_at : timestamptz</text>
+    <text class="field" x="20" y="298">received_at : timestamptz</text>
+    <rect class="pill" x="14" y="325" width="400" height="48"/>
+    <text class="note" x="25" y="345">Recorded measurement time and server receipt time</text>
+    <text class="note" x="25" y="364">are stored separately.</text>
+  </g>
+
+  <!-- Passenger domain -->
+  <g transform="translate(70 750)">
+    <rect class="box" width="340" height="225"/>
+    <path class="head" d="M14 0 H326 Q340 0 340 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">PASSENGER_ACCOUNTS</text>
+    <text class="field" x="20" y="85">PK  id : uuid</text>
+    <text class="field" x="20" y="115">full_name : varchar(120)</text>
+    <text class="field" x="20" y="145">email : varchar(254), unique</text>
+    <text class="field" x="20" y="175">password_hash : text · role : text</text>
+    <text class="field" x="20" y="205">created_at · updated_at : timestamptz</text>
+  </g>
+  <g transform="translate(550 750)">
+    <rect class="box" width="360" height="225"/>
+    <path class="head" d="M14 0 H346 Q360 0 360 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">PASSENGER_SESSIONS</text>
+    <text class="field" x="20" y="85">PK  token_hash : char(64)</text>
+    <text class="field" x="20" y="115">FK  passenger_id : uuid</text>
+    <text class="field" x="20" y="145">created_at : timestamptz</text>
+    <text class="field" x="20" y="175">expires_at : timestamptz</text>
+    <text class="field" x="20" y="205">revoked_at : timestamptz, nullable</text>
+  </g>
+  <g transform="translate(550 1030)">
+    <rect class="box" width="420" height="235"/>
+    <path class="head" d="M14 0 H406 Q420 0 420 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">PASSENGER_FAVORITE_ROUTES</text>
+    <text class="field" x="20" y="85">PK, FK  passenger_id : uuid</text>
+    <text class="field" x="20" y="115">PK  route_key : uuid</text>
+    <text class="field" x="20" y="145">FK  route_id : uuid, nullable</text>
+    <text class="field" x="20" y="175">origin · destination : text snapshots</text>
+    <text class="field" x="20" y="205">created_at : timestamptz</text>
+    <text class="note" x="20" y="225">Route label survives deletion; live FK becomes null.</text>
+  </g>
+
+  <!-- Administrator domain -->
+  <g transform="translate(1100 750)">
+    <rect class="box" width="320" height="225"/>
+    <path class="head" d="M14 0 H306 Q320 0 320 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">ADMIN_ACCOUNTS</text>
+    <text class="field" x="20" y="85">PK  id : uuid</text>
+    <text class="field" x="20" y="115">email : varchar(254), unique</text>
+    <text class="field" x="20" y="145">password_hash : text</text>
+    <text class="field" x="20" y="175">role : text</text>
+    <text class="field" x="20" y="205">created_at : timestamptz</text>
+  </g>
+  <g transform="translate(1480 750)">
+    <rect class="box" width="350" height="225"/>
+    <path class="head" d="M14 0 H336 Q350 0 350 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">ADMIN_SESSIONS</text>
+    <text class="field" x="20" y="85">PK  token_hash : char(64)</text>
+    <text class="field" x="20" y="115">FK  admin_id : uuid</text>
+    <text class="field" x="20" y="145">created_at : timestamptz</text>
+    <text class="field" x="20" y="175">expires_at : timestamptz</text>
+    <text class="field" x="20" y="205">revoked_at : timestamptz, nullable</text>
+  </g>
+
+  <!-- Migration ledger -->
+  <g transform="translate(1100 1060)">
+    <rect class="box" width="420" height="170"/>
+    <path class="head" d="M14 0 H406 Q420 0 420 14 V54 H0 V14 Q0 0 14 0Z"/>
+    <text class="entity" x="20" y="35">SCHEMA_MIGRATIONS</text>
+    <text class="field" x="20" y="85">PK  name : text</text>
+    <text class="field" x="20" y="115">checksum : text</text>
+    <text class="field" x="20" y="145">applied_at : timestamptz</text>
+  </g>
+
+  <line x1="70" y1="1302" x2="1850" y2="1302" stroke="#d5e1d7"/>
+  <text class="note" x="70" y="1332">PK = primary key · FK = foreign key · UK = unique key · 1:N labels show one-to-many · nullable links are optional · schema migration ledger is independent.</text>
+  <text class="note" x="70" y="1360">Source: backend/migrations/001_initial.sql through 006_jeepney_management.sql and backend/scripts/migrate.js. DEMO and simulated records are labeled by source.</text>
+</svg>

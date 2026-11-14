@@ -1,3 +1,4 @@
+import { RouteManagement } from "./RouteManagement";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
@@ -378,7 +379,7 @@ export function App() {
           >
             <Icon name={symbols[index]} />
             <span>{item}</span>
-            {index > 1 && index < 5 && <small>SOON</small>}
+            {index > 2 && index < 5 && <small>SOON</small>}
           </a>
         ))}
       </nav>
@@ -499,6 +500,8 @@ export function App() {
             <Overview onExpire={expire} navigate={navigate} />
           ) : section === "Jeepneys" ? (
             <JeepneyManagement onExpire={expire} />
+          ) : section === "Routes" ? (
+            <RouteManagement onExpire={expire} />
           ) : section === "Settings" ? (
             <>
               <PageHeading
@@ -928,7 +931,9 @@ function Overview({
               <span>
                 {item}
                 <small>
-                  {item === "Jeepneys" ? "Manage records" : "Coming soon"}
+                  {item === "Jeepneys" || item === "Routes"
+                    ? "Manage records"
+                    : "Coming soon"}
                 </small>
               </span>
               <Icon name="arrow" />

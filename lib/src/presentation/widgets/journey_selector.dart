@@ -214,6 +214,20 @@ class JourneyState extends StatelessWidget {
             controller.selectedRoute!.label,
             style: Theme.of(context).textTheme.titleLarge,
           ),
+          if (!controller.offline && !controller.selectedRoute!.isDemo) ...[
+            if (controller.selectedRoute!.originTerminal != null)
+              Text(
+                'Verified origin terminal: ${controller.selectedRoute!.originTerminal}',
+              ),
+            if (controller.selectedRoute!.destinationTerminal != null)
+              Text(
+                'Verified destination terminal: ${controller.selectedRoute!.destinationTerminal}',
+              ),
+            if (controller.selectedRoute!.boardingNotes != null)
+              Text(
+                'Verified boarding information: ${controller.selectedRoute!.boardingNotes}',
+              ),
+          ],
           Text(
             'Route ID: ${controller.selectedRoute!.id}',
             style: Theme.of(context).textTheme.bodySmall,

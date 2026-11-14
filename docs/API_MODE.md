@@ -1,5 +1,7 @@
 # Running AbangQue against the backend
 
+Phase 4 update (2026-11-14): [Route Management](ROUTE_MANAGEMENT.md) now supports verified directions, operational metadata and reversible route activation. Earlier route-deferral notes below are historical.
+
 For the separate administrator website, follow [admin web setup](ADMIN_WEB.md).
 Its browser-cookie authentication and `/api/admin` endpoints are independent of
 passenger authentication; the Flutter configuration below remains unchanged.

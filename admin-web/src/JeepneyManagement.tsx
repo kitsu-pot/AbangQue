@@ -16,7 +16,7 @@ import type {
 } from "./jeepneys";
 import "./jeepneys.css";
 
-function Modal({
+export function Modal({
   title,
   close,
   busy = false,
@@ -66,7 +66,13 @@ function Source({ row }: { row: Jeepney }) {
     </span>
   );
 }
-export function JeepneyManagement({ onExpire }: { onExpire: () => void }) {
+export function JeepneyManagement({
+  onExpire,
+  initialId,
+}: {
+  onExpire: () => void;
+  initialId?: string;
+}) {
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState({
       search: "",
@@ -221,6 +227,9 @@ export function JeepneyManagement({ onExpire }: { onExpire: () => void }) {
         setLoadingRecord(false);
     }
   }
+  useEffect(() => {
+    if (initialId) void openRecord(initialId, "details");
+  }, [initialId]);
   function close() {
     generation.current++;
     setLoadingRecord(false);

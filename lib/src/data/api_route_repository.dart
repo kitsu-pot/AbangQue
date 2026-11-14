@@ -124,6 +124,11 @@ Map<String, Object> publicRouteJson(RouteCatalog catalog) => {
           'origin': r.origin.label,
           'destination': r.destination.label,
           'isDemo': r.isDemo,
+          'verifiedOperations': {
+            'originTerminal': r.originTerminal,
+            'destinationTerminal': r.destinationTerminal,
+            'boardingNotes': r.boardingNotes,
+          },
         },
       )
       .toList(),
@@ -146,11 +151,24 @@ RouteCatalog parseRouteCatalog(dynamic data, bool allowSimulation) {
     if (row is! Map || row['id'] is! String || row['isDemo'] is! bool) {
       throw const FormatException('Invalid route');
     }
+    final operations = row['verifiedOperations'];
+    String? operation(String key, int max) {
+      if (operations is! Map || operations[key] == null) return null;
+      final value = operations[key];
+      if (value is! String || value.length > max) {
+        throw const FormatException('Invalid operational information');
+      }
+      return value.trim().isEmpty ? null : value;
+    }
+
     final route = PassengerRoute(
       id: row['id'],
       origin: municipality(row['origin']),
       destination: municipality(row['destination']),
       isDemo: row['isDemo'],
+      originTerminal: operation('originTerminal', 200),
+      destinationTerminal: operation('destinationTerminal', 200),
+      boardingNotes: operation('boardingNotes', 1000),
     );
     if (!route.isDemo || allowSimulation) routes.add(route);
   }

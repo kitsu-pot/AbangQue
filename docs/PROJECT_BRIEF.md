@@ -1,9 +1,10 @@
 # AbangQue — Project brief
 
-Current phase update (2026-11-13): the owner explicitly authorized the separate
-admin web and Phase 3 Jeepney Management. See sections 22–23,
+Current phase update (2026-11-14): the owner explicitly authorized the separate
+admin web, Jeepney Management and Phase 4 Route Management. See sections 22–23,
 [ADMIN_WEB.md](ADMIN_WEB.md) and [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md).
-Earlier admin deferral notes below are historical. Route/IoT management and
+See [ROUTE_MANAGEMENT.md](ROUTE_MANAGEMENT.md) for current route behavior and checks.
+Earlier admin deferral notes below are historical. IoT management and
 deployment remain outside this phase.
 
 GitHub repository: https://github.com/kitsu-pot/AbangQue
@@ -614,3 +615,13 @@ and labeled test vehicle/admin at desktop/mobile widths, then removed that schem
 It does not establish owner login, phone acceptance or physical GPS/LTE operation.
 See [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md) for changed files, exact commands,
 test scope, migration/application status and remaining decisions.
+
+## 24. Route Management (2026-11-14)
+
+Migration 007 adds optional operational metadata, explicit verification, unique ordered
+municipality pairs, immutable route identity and edit versions. Admin route APIs and
+responsive cards support registration, editing, activation, filtering and assigned
+vehicles. Passenger catalogs expose only verified operations; Flutter displays them
+while online. Inactive directions remain unavailable favorites, preserving IDs and
+assignments. Migration applied locally; no operating records or credentials seeded.
+See ROUTE_MANAGEMENT.md for commands, checks and remaining manual acceptance.

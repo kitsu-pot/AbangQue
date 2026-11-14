@@ -1,5 +1,7 @@
 # AbangQue admin web foundation
 
+Phase 4 update (2026-11-14): [Route Management](ROUTE_MANAGEMENT.md) now supports verified directions, operational metadata and reversible route activation. Earlier route-deferral notes below are historical.
+
 Foundation implemented 2026-11-12; Jeepney Management added 2026-11-13. The admin
 web includes authentication, overview, navigation, account/session Settings and
 vehicle registration/editing/route assignment/activation. See

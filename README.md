@@ -1,5 +1,7 @@
 # AbangQue passenger app
 
+Phase 4 update (2026-11-14): [Route Management](docs/ROUTE_MANAGEMENT.md) now supports verified directions, operational metadata and reversible route activation. Earlier route-deferral notes below are historical.
+
 The separate **Admin Web Dashboard** is in `admin-web/`. See
 [admin setup, secure first-account provisioning and verification](docs/ADMIN_WEB.md).
 It reuses the Express/PostgreSQL backend. [Jeepney Management](docs/JEEPNEY_MANAGEMENT.md)

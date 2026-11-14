@@ -1,5 +1,7 @@
 # Admin Jeepney Management — Phase 3
 
+Phase 4 update (2026-11-14): [Route Management](ROUTE_MANAGEMENT.md) now supports verified directions, operational metadata and reversible route activation. Earlier route-deferral notes below are historical.
+
 Implemented 2026-11-13 in the existing React admin web and Express/PostgreSQL
 backend. Checkpoint `checkpoint/jeepney-management-2026-11-13` preserves `4d7be55`.
 This phase makes **Jeepneys** functional; Route Management, IoT Device Management,

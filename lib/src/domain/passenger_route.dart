@@ -18,6 +18,9 @@ class PassengerRoute {
     required this.origin,
     required this.destination,
     this.isDemo = false,
+    this.originTerminal,
+    this.destinationTerminal,
+    this.boardingNotes,
   }) {
     if (id.trim().isEmpty || origin == destination) {
       throw ArgumentError(
@@ -25,6 +28,7 @@ class PassengerRoute {
       );
     }
   }
+  final String? originTerminal, destinationTerminal, boardingNotes;
   final String id;
   final bool isDemo;
   final Municipality origin;

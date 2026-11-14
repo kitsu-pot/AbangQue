@@ -1,3 +1,7 @@
+import { lazy, Suspense } from "react";
+const LiveMonitoring = lazy(() =>
+  import("./LiveMonitoring").then((m) => ({ default: m.LiveMonitoring })),
+);
 import { DeviceManagement } from "./DeviceManagement";
 import { RouteManagement } from "./RouteManagement";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -380,7 +384,6 @@ export function App() {
           >
             <Icon name={symbols[index]} />
             <span>{item}</span>
-            {index > 3 && index < 5 && <small>SOON</small>}
           </a>
         ))}
       </nav>
@@ -505,6 +508,10 @@ export function App() {
             <RouteManagement onExpire={expire} />
           ) : section === "IoT Devices" ? (
             <DeviceManagement onExpire={expire} />
+          ) : section === "Live Monitoring" ? (
+            <Suspense fallback={<p role="status">Loading monitoring map…</p>}>
+              <LiveMonitoring onExpire={expire} />
+            </Suspense>
           ) : section === "Settings" ? (
             <>
               <PageHeading
@@ -938,7 +945,7 @@ function Overview({
                   item === "Routes" ||
                   item === "IoT Devices"
                     ? "Manage records"
-                    : "Coming soon"}
+                    : "View device reports"}
                 </small>
               </span>
               <Icon name="arrow" />

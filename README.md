@@ -1,5 +1,7 @@
 # AbangQue passenger app
 
+Phase 6 update (2026-11-14): [Admin Live GPS Monitoring](docs/LIVE_MONITORING.md) now provides the protected report map, filters and historical device/vehicle details. Migration 009 adds one receipt lookup index; earlier Live Monitoring deferral notes are historical.
+
 Phase 5 update (2026-11-14): [IoT Device Management](docs/DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.
 
 Phase 4 update (2026-11-14): [Route Management](docs/ROUTE_MANAGEMENT.md) now supports verified directions, operational metadata and reversible route activation. Earlier route-deferral notes below are historical.

@@ -75,6 +75,12 @@ beforeEach(() => {
   setup();
 });
 afterEach(cleanup);
+test("monitoring navigation opens the requested device details without editing", async () => {
+  render(<DeviceManagement onExpire={vi.fn()} initialId="DEVICE-TEST" />);
+  expect(await screen.findByRole("dialog")).toBeTruthy();
+  expect(screen.getByText("Manage device")).toBeTruthy();
+  expect(mock.mock.calls.every((call) => call[1] === undefined)).toBe(true);
+});
 async function details() {
   await screen.findByText("DEVICE-TEST");
   await userEvent.click(screen.getByText("View DEVICE-TEST"));

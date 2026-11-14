@@ -112,7 +112,13 @@ function errorMessage(e: unknown, write = false) {
   }
   return "Request failed. Please retry.";
 }
-export function DeviceManagement({ onExpire }: { onExpire: () => void }) {
+export function DeviceManagement({
+  onExpire,
+  initialId,
+}: {
+  onExpire: () => void;
+  initialId?: string;
+}) {
   const [filter, setFilter] = useState({
       search: "",
       reporting: "all",
@@ -247,6 +253,9 @@ export function DeviceManagement({ onExpire }: { onExpire: () => void }) {
       if (alive.current && generation.current === seq) setBusy(false);
     }
   }
+  useEffect(() => {
+    if (initialId) void open(initialId);
+  }, [initialId]);
   function selectAction(a: Action) {
     if (!detail) return;
     setAction(a);

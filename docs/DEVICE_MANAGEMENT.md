@@ -1,5 +1,7 @@
 # Admin IoT Device Management — Phase 5 (2026-11-14)
 
+Phase 6 update (2026-11-14): [Admin Live GPS Monitoring](LIVE_MONITORING.md) now provides the protected report map, filters and historical device/vehicle details. Migration 009 adds one receipt lookup index; earlier Live Monitoring deferral notes are historical.
+
 IoT Devices now supports registration, metadata, vehicle assignment, enable/disable,
 one-time credential provisioning/rotation, revocation, reporting snapshots, filters
 and pagination. It reuses Express, PostgreSQL, administrator sessions and the

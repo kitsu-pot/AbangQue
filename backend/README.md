@@ -1,5 +1,7 @@
 # AbangQue backend
 
+Phase 6 update (2026-11-14): [Admin Live GPS Monitoring](../docs/LIVE_MONITORING.md) now provides the protected report map, filters and historical device/vehicle details. Migration 009 adds one receipt lookup index; earlier Live Monitoring deferral notes are historical.
+
 Phase 5 update (2026-11-14): [IoT Device Management](../docs/DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.
 
 Node.js 24, Express 5, JavaScript ES modules, PostgreSQL. Flutter now has a separate

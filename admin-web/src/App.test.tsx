@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "./App";
+import { monitoringFixture } from "./monitoring-fixture";
 import { api, ApiError } from "./api";
 vi.mock("./api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./api")>();
@@ -37,6 +38,13 @@ const empty = {
   recent: [],
 };
 beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
   location.hash = "";
   mockApi.mockReset();
   HTMLDialogElement.prototype.showModal = function () {
@@ -52,7 +60,13 @@ afterEach(() => {
 });
 function authenticated() {
   mockApi.mockImplementation(async (path) =>
-    path === "/session" ? session : path === "/dashboard" ? empty : undefined,
+    path === "/session"
+      ? session
+      : path === "/dashboard"
+        ? empty
+        : path.startsWith("/monitoring?")
+          ? monitoringFixture()
+          : [],
   );
 }
 test("deep links remain protected and login shows generic errors with password visibility", async () => {
@@ -128,8 +142,10 @@ test("mobile navigation, sidebar collapse, planned sections and settings/logout 
     screen.getByRole("button", { name: "Open navigation" }),
   );
   const dialog = screen.getByRole("dialog");
-  await userEvent.click(within(dialog).getByRole("link", { name: /Live Monitoring/ }));
-  await screen.findByRole("heading", { name: "Live Monitoring, in the next phase." });
+  await userEvent.click(
+    within(dialog).getByRole("link", { name: /Live Monitoring/ }),
+  );
+  await screen.findByRole("heading", { name: "Live Monitoring" });
   expect(screen.queryByRole("dialog")).toBeNull();
   await userEvent.click(screen.getByRole("link", { name: "Settings" }));
   await screen.findByText(session.user.email);

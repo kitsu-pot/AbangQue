@@ -49,6 +49,7 @@ export async function api<T>(
   path: string,
   body?: object,
   method: "POST" | "PUT" = "POST",
+  signal?: AbortSignal,
 ): Promise<T> {
   let response: Response;
   try {
@@ -57,7 +58,9 @@ export async function api<T>(
       credentials: "include",
       cache: "no-store",
       redirect: "error",
-      signal: AbortSignal.timeout(10000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
+        : AbortSignal.timeout(10000),
       headers: body
         ? { "Content-Type": "application/json", "X-AbangQue-Admin": "1" }
         : {},

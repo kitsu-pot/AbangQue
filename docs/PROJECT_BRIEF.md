@@ -5,8 +5,9 @@ admin web, Jeepney/Route Management and Phase 5 IoT Device Management. See secti
 [ADMIN_WEB.md](ADMIN_WEB.md) and [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md).
 See [ROUTE_MANAGEMENT.md](ROUTE_MANAGEMENT.md) for current route behavior and checks.
 See [DEVICE_MANAGEMENT.md](DEVICE_MANAGEMENT.md) for device administration and security.
-Earlier deferral notes are historical. Firmware, physical integration, Live Monitoring
-and deployment remain outside this phase.
+Phase 6 Live Monitoring is now implemented; see [LIVE_MONITORING.md](LIVE_MONITORING.md).
+Earlier deferral notes are historical. Firmware, physical integration and deployment
+remain outside this phase.
 
 GitHub repository: https://github.com/kitsu-pot/AbangQue
 
@@ -642,3 +643,24 @@ references. Rotation/revocation/audit are transactional; only hashes persist. No
 passenger-code changes, fake reports, driver accounts, firmware or deployment.
 Migration applied locally. Backend, PostgreSQL and frontend tests passed; physical
 IoT and manual browser acceptance remain unverified. See DEVICE_MANAGEMENT.md.
+
+## 26. Admin Live GPS Monitoring (2026-11-14)
+
+Phase 6 adds a protected read-only monitoring snapshot, OpenStreetMap view, registered
+route/device filters, historical report details and configurable polling. Latest GPS
+ownership follows the original vehicle/credential; current device assignments remain
+separate. Stale, revoked, disabled, reassigned and unverified reports cannot establish
+current driver availability. DEMO/SIMULATED records are excluded from this module.
+
+Migration 009 adds a credential receipt lookup index only and was applied locally.
+No owner records or GPS reports were seeded or rewritten. Polling preserves camera and
+selection, cancels obsolete requests, backs off and labels preserved outage data.
+See [LIVE_MONITORING.md](LIVE_MONITORING.md) for API, commands, timestamp semantics,
+performance, tests and browser acceptance. No Flutter, firmware or deployment changes.
+
+Phase 6 validation: backend check and 57 database-free tests passed; the full
+PostgreSQL runner passed 68 tests, followed by the expanded monitoring suite's eight
+passing tests after an additional test-only case. Frontend lint/typecheck/build and
+36 tests passed. Browser QA covered 1440px desktop and 390px mobile against disposable
+no-GPS records; the QA schema was removed. Existing local records were read only.
+Physical hardware and owner-session acceptance remain unverified.

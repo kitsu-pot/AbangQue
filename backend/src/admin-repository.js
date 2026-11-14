@@ -57,12 +57,13 @@ export class AdminRepository {
         min(LEAST(recorded_at,last_seen_at) + $2 * interval '1 second')
           FILTER (WHERE fresh) AS "validUntil"
         FROM reports`, [now, staleSeconds])).rows[0];
+      const devices = (await client.query("SELECT count(*)::int AS total FROM iot_devices WHERE source='device'")).rows[0].total;
       const routes = (await client.query('SELECT count(*)::int AS total FROM registered_routes')).rows[0].total;
       const recent = (await client.query(`WITH reports AS (${reports}) SELECT * FROM reports
         ORDER BY last_seen_at DESC NULLS LAST, id LIMIT 20`, [now, staleSeconds])).rows;
       await client.query('COMMIT');
       return { updatedAt: now.toISOString(), staleAfterSeconds: staleSeconds,
-        summary: { ...counts, routes, devices: null },
+        summary: { ...counts, routes, devices },
         recent: recent.map(r => ({ id: r.id, name: r.name, source: r.source, active: r.active,
           route: r.origin ? r.origin + ' → ' + r.destination + (r.route_active ? '' : ' (inactive)') : null,
           timestamp: r.recorded_at?.toISOString() ?? null, lastSeenAt: r.last_seen_at?.toISOString() ?? null,

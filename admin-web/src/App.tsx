@@ -1,3 +1,4 @@
+import { DeviceManagement } from "./DeviceManagement";
 import { RouteManagement } from "./RouteManagement";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -379,7 +380,7 @@ export function App() {
           >
             <Icon name={symbols[index]} />
             <span>{item}</span>
-            {index > 2 && index < 5 && <small>SOON</small>}
+            {index > 3 && index < 5 && <small>SOON</small>}
           </a>
         ))}
       </nav>
@@ -502,6 +503,8 @@ export function App() {
             <JeepneyManagement onExpire={expire} />
           ) : section === "Routes" ? (
             <RouteManagement onExpire={expire} />
+          ) : section === "IoT Devices" ? (
+            <DeviceManagement onExpire={expire} />
           ) : section === "Settings" ? (
             <>
               <PageHeading
@@ -665,9 +668,9 @@ function Overview({
     ],
     [
       "Registered Devices",
-      null,
+      current?.summary.devices,
       "device",
-      "Physical-device registry not available",
+      "Registrations · hardware operation unverified",
     ],
     [
       "Fresh Location Reports",
@@ -908,8 +911,8 @@ function Overview({
           </div>
         )}
         <div className="panel-footnote">
-          Manage registered route assignments in Jeepneys. A physical-device
-          registry is planned for a later phase.
+          Manage registered route assignments in Jeepneys. Manage device
+          registrations in IoT Devices.
         </div>
       </section>
       <section className="quick-navigation">
@@ -931,7 +934,9 @@ function Overview({
               <span>
                 {item}
                 <small>
-                  {item === "Jeepneys" || item === "Routes"
+                  {item === "Jeepneys" ||
+                  item === "Routes" ||
+                  item === "IoT Devices"
                     ? "Manage records"
                     : "Coming soon"}
                 </small>

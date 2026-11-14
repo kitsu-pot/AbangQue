@@ -1,5 +1,7 @@
 # Jeepney details and local GPS simulation
 
+Phase 5 update (2026-11-14): [IoT Device Management](DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.
+
 Implemented 2026-11-01. Pre-change Git checkpoint: `16ecf3c`.
 
 ## What this demonstrates

@@ -1,3 +1,4 @@
+import { adminDeviceRouter } from './admin-devices.js';
 import { adminRouteRouter } from './admin-routes.js';
 import { Router, json } from 'express';
 import { rateLimit } from 'express-rate-limit';
@@ -14,7 +15,7 @@ export const adminCredentials = z.object({
 }).strict();
 const loginInput = adminCredentials.extend({ password: z.string().min(1).max(128) });
 let dummyHash;
-export function adminRouter({ repository, jeepneyRepository, routeRepository, config, clock = Date.now }) {
+export function adminRouter({ repository, jeepneyRepository, routeRepository, deviceRepository, config, clock = Date.now }) {
   const router = Router();
   const secure = config.NODE_ENV === 'production';
   const cookieName = secure ? '__Host-abangque_admin' : 'abangque_admin';
@@ -89,5 +90,6 @@ export function adminRouter({ repository, jeepneyRepository, routeRepository, co
   router.get('/dashboard', async (_req, res) => res.json({ data: await repository.dashboard(new Date(clock()), config.STALE_AFTER_SECONDS) }));
   if (jeepneyRepository) router.use(adminJeepneyRouter({ repository: jeepneyRepository, config, clock }));
   if (routeRepository) router.use(adminRouteRouter({ repository: routeRepository, jeepneyRepository, config, clock }));
+  if (deviceRepository) router.use(adminDeviceRouter({ repository: deviceRepository, config, clock }));
   return router;
 }

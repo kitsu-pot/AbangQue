@@ -1,5 +1,7 @@
 # AbangQue admin web foundation
 
+Phase 5 update (2026-11-14): [IoT Device Management](DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.
+
 Phase 4 update (2026-11-14): [Route Management](ROUTE_MANAGEMENT.md) now supports verified directions, operational metadata and reversible route activation. Earlier route-deferral notes below are historical.
 
 Foundation implemented 2026-11-12; Jeepney Management added 2026-11-13. The admin
@@ -145,9 +147,9 @@ no Domain. Local development uses `abangque_admin` without Secure for loopback H
   registration count, not proof of working physical hardware.
 - Registered Routes counts the real `registered_routes` table, including inactive
   records. The opt-in simulator catalog is not an operating route or included count.
-- Registered Devices displays **Not available**: `device_credentials` contains
-  credentials, potentially multiple/revoked credentials per vehicle, not a physical
-  device registry. No count of credentials is mislabeled as devices.
+- Registered Devices counts real registrations in `iot_devices`, including disabled
+  and labeled legacy registrations, excluding SIMULATED. This is not proof of
+  physical hardware; see DEVICE_MANAGEMENT.md for legacy credential grouping.
 - Route assignment is managed in Jeepneys through migration 006's optional route
   foreign key; unassigned vehicles are labeled Unassigned.
 - Fresh reports require both latest measurement time and latest communication time

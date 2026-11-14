@@ -21,12 +21,17 @@ export class PostgresRepository {
     return (await this.pool.query(selection + ' WHERE j.active AND j.id = $1 AND (j.source = \'device\' OR ($2 AND j.source = \'demo\') OR ($3 AND j.source = \'simulated\'))', [id, includeDemo, includeSimulated])).rows[0];
   }
   async credential(id) {
-    return (await this.pool.query('SELECT id, jeepney_id, source, secret_hash, revoked_at FROM device_credentials WHERE id = $1', [id])).rows[0];
+    return (await this.pool.query('SELECT c.id,c.jeepney_id,c.source,c.secret_hash,c.revoked_at,c.device_id,d.enabled FROM device_credentials c JOIN iot_devices d ON d.id=c.device_id WHERE c.id=$1 AND d.jeepney_id=c.jeepney_id', [id])).rows[0];
   }
   async insertUpdate(credential, input) {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      // Lock registration before credential, matching admin mutation lock order.
+      if (credential.device_id) {
+        const device = (await client.query('SELECT enabled,jeepney_id FROM iot_devices WHERE id=$1 FOR SHARE', [credential.device_id])).rows[0];
+        if (!device?.enabled || device.jeepney_id !== input.jeepneyId) { await client.query('ROLLBACK'); return { revoked: true }; }
+      }
       // Recheck under lock so revocation cannot race authentication and ingestion.
       const { rows } = await client.query('SELECT id, source FROM device_credentials WHERE id=$1 AND jeepney_id=$2 AND revoked_at IS NULL AND secret_hash=$3 FOR SHARE',
         [credential.id, input.jeepneyId, credential.secret_hash]);

@@ -9,13 +9,13 @@ import { parseToken, matchesSecret } from './security.js';
 import { jeepneyId, updateSchema, timestampAllowed } from './validation.js';
 import { presentJeepney } from './presenter.js';
 
-export function createApp({ repository, passengerRepository, favoriteRepository, adminRepository, adminJeepneyRepository, adminRouteRepository, config, clock = Date.now }) {
+export function createApp({ repository, passengerRepository, favoriteRepository, adminRepository, adminJeepneyRepository, adminRouteRepository, adminDeviceRepository, config, clock = Date.now }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY === 'loopback' ? 'loopback' : false);
   app.use(helmet());
   app.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
-  if (adminRepository) app.use('/api/admin', adminRouter({ repository: adminRepository, jeepneyRepository: adminJeepneyRepository, routeRepository: adminRouteRepository, config, clock }));
+  if (adminRepository) app.use('/api/admin', adminRouter({ repository: adminRepository, jeepneyRepository: adminJeepneyRepository, routeRepository: adminRouteRepository, deviceRepository: adminDeviceRepository, config, clock }));
   app.get('/health', async (_req, res) => {
     try {
       await repository.health();
@@ -56,7 +56,7 @@ export function createApp({ repository, passengerRepository, favoriteRepository,
         return res.status(401).json({ error: 'UNAUTHORIZED' });
       const credential = await repository.credential(token.id);
       const valid = matchesSecret(token.secret, credential?.secret_hash);
-      if (!valid || !credential || credential.revoked_at) return res.status(401).json({ error: 'UNAUTHORIZED' });
+      if (!valid || !credential || credential.revoked_at || credential.enabled === false) return res.status(401).json({ error: 'UNAUTHORIZED' });
       if (credential.source === 'simulated' && !includeSimulated)
         return res.status(403).json({ error: 'SIMULATION_DISABLED' });
       req.credential = credential;

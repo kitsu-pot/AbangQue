@@ -1,5 +1,7 @@
 # Admin Route Management — Phase 4 (2026-11-14)
 
+Phase 5 update: [IoT Device Management](DEVICE_MANAGEMENT.md) now supplies device administration. Earlier device-module deferral notes below are historical.
+
 Routes now supports registration, metadata editing, reversible activation,
 search, municipality/status filters, pagination, counts and assigned vehicle
 inspection. Cards adapt to phone widths. Existing authentication, Jeepney

@@ -33,6 +33,7 @@ test('real PostgreSQL jeepney management and passenger/device compatibility', { 
     const historyBefore = (await pool.query('SELECT * FROM location_status_updates')).rows;
     await pool.query(await readFile(new URL('006_jeepney_management.sql', dir), 'utf8'));
     await pool.query(await readFile(new URL('007_route_management.sql', dir), 'utf8'));
+    await pool.query(await readFile(new URL('008_device_management.sql', dir), 'utf8'));
     const admin = new AdminRepository(pool), vehicles = new AdminJeepneyRepository(pool);
     const app = createApp({ config, adminRepository: admin, adminJeepneyRepository: vehicles, repository: new PostgresRepository(pool), passengerRepository: new PassengerRepository(pool), favoriteRepository: new FavoriteRepository(pool) });
     const password = randomBytes(24).toString('base64url');

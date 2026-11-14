@@ -59,7 +59,7 @@ test('real PostgreSQL administrator foundation', { skip: process.env.AUTH_INTEGR
     });
     await t.test('empty database yields zero supported statistics and unavailable device registry', async () => {
       const result = await request(app).get('/api/admin/dashboard').set('Cookie', cookie).expect(200);
-      assert.deepEqual(result.body.data.summary, { jeepneys: 0, demoJeepneys: 0, fresh: 0, staleOrMissing: 0, full: 0, available: 0, validUntil: null, routes: 0, devices: null });
+      assert.deepEqual(result.body.data.summary, { jeepneys: 0, demoJeepneys: 0, fresh: 0, staleOrMissing: 0, full: 0, available: 0, validUntil: null, routes: 0, devices: 0 });
       assert.deepEqual(result.body.data.recent, []);
     });
     await t.test('actual SQL counts vehicles, excludes test data, handles stale and missing reports', async () => {

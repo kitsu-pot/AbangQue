@@ -1,11 +1,12 @@
 # AbangQue — Project brief
 
 Current phase update (2026-11-14): the owner explicitly authorized the separate
-admin web, Jeepney Management and Phase 4 Route Management. See sections 22–23,
+admin web, Jeepney/Route Management and Phase 5 IoT Device Management. See sections 22–23,
 [ADMIN_WEB.md](ADMIN_WEB.md) and [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md).
 See [ROUTE_MANAGEMENT.md](ROUTE_MANAGEMENT.md) for current route behavior and checks.
-Earlier admin deferral notes below are historical. IoT management and
-deployment remain outside this phase.
+See [DEVICE_MANAGEMENT.md](DEVICE_MANAGEMENT.md) for device administration and security.
+Earlier deferral notes are historical. Firmware, physical integration, Live Monitoring
+and deployment remain outside this phase.
 
 GitHub repository: https://github.com/kitsu-pot/AbangQue
 
@@ -625,3 +626,19 @@ vehicles. Passenger catalogs expose only verified operations; Flutter displays t
 while online. Inactive directions remain unavailable favorites, preserving IDs and
 assignments. Migration applied locally; no operating records or credentials seeded.
 See ROUTE_MANAGEMENT.md for commands, checks and remaining manual acceptance.
+
+## 25. IoT Device Management (2026-11-14)
+
+Migration 008 adds stable device registrations linked to existing credential versions,
+one-enabled-device assignment constraints and secret-free admin audit events. Existing
+vehicle-bound credentials are grouped into labeled legacy registrations without
+changing hashes, bindings, sources or history. This is not physical hardware proof.
+The existing simulator is retained, labeled and read-only in admin management.
+
+Admin APIs/UI implement registration, metadata, assignment/unassignment, enable/disable,
+one-time provisioning/rotation and revocation. Ingestion rechecks device state under
+lock before credential checks; reassignment revokes keys and preserves original GPS
+references. Rotation/revocation/audit are transactional; only hashes persist. No
+passenger-code changes, fake reports, driver accounts, firmware or deployment.
+Migration applied locally. Backend, PostgreSQL and frontend tests passed; physical
+IoT and manual browser acceptance remain unverified. See DEVICE_MANAGEMENT.md.

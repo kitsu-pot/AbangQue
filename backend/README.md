@@ -1,5 +1,7 @@
 # AbangQue backend
 
+Phase 5 update (2026-11-14): [IoT Device Management](../docs/DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.
+
 Node.js 24, Express 5, JavaScript ES modules, PostgreSQL. Flutter now has a separate
 passenger API adapter with selectable offline demo mode. Nothing is deployed. No ESP32, GPS, official route, or real
 ETA integration is claimed by this scaffold.

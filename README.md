@@ -16,6 +16,10 @@ A Material 3 Flutter passenger application for Marinduque, Philippines, with an
 original emerald/mint/cream Liquid Glass-inspired interface. English is the
 current interface language. The existing internal package name remains jeeplink.
 
+The supplied official AbangQue logo is configured for Android launcher/adaptive icons
+and the existing Windows, Web and iOS icon assets. See [icon regeneration and phone
+verification](docs/APP_ICON.md).
+
 Passenger login, registration, persistent secure sessions, profile editing, password
 changes, permanent account deletion and server-revoked logout are implemented.
 **Continue as Guest** keeps transportation information public. Offline DEMO remains guest-only. See

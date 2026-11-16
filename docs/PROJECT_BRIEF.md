@@ -664,3 +664,19 @@ passing tests after an additional test-only case. Frontend lint/typecheck/build 
 36 tests passed. Browser QA covered 1440px desktop and 390px mobile against disposable
 no-GPS records; the QA schema was removed. Existing local records were read only.
 Physical hardware and owner-session acceptance remain unverified.
+
+
+## 27. Official passenger app icon (2026-11-16)
+
+Checkpoint `checkpoint/app-icon-2026-11-16` preserves `4edf9b9`. The owner-supplied
+AbangQue logo is retained byte-for-byte as the branding original (JPEG despite its
+uploaded .png suffix). Deterministic matte removal, proportional fitting and padding
+provide standard/adaptive Android icons, plus existing Windows/Web/iOS icon assets.
+The artwork is not redesigned. Android uses its existing ic_launcher resource name,
+an emerald background and padded foreground; no package/security/runtime settings
+change. The dev-only generator/helper and regeneration steps are documented in
+[APP_ICON.md](APP_ICON.md). Existing thesis edits are outside this icon change.
+Dependency resolution, icon generation, Flutter analysis, 106 Flutter tests (one
+opt-in GPS integration test skipped) and the Android debug build passed. APK
+inspection confirmed all ten Android icon images and the adaptive resource wiring.
+Phone launcher verification remains pending because no device was attached.

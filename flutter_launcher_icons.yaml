@@ -1,0 +1,18 @@
+# Run: dart run tool/generate_app_icons.dart (prepares assets and invokes this config).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app-icon.png
+  # Foreground already has 22/108 padding on each side. Do not inset it twice.
+  adaptive_icon_foreground: assets/branding/app-icon-foreground.png
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_background: "#004D40"
+  remove_alpha_ios: true
+  background_color_ios: "#004D40"
+  web:
+    generate: true
+    image_path: assets/branding/app-icon.png
+  windows:
+    generate: true
+    image_path: assets/branding/app-icon.png
+    icon_size: 256

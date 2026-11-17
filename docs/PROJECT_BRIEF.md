@@ -1,5 +1,11 @@
 # AbangQue — Project brief
 
+Current phase update (2026-11-17): the owner explicitly authorized Phase 7A ESP32
+firmware development and hardware preparation. See section 28 and
+[iot-firmware/README.md](../iot-firmware/README.md). This supersedes earlier firmware
+deferral notes for this foundation only. Purchased hardware, physical GPS/Wi-Fi,
+cellular integration, vehicle wiring and deployment remain unverified/pending.
+
 Current phase update (2026-11-14): the owner explicitly authorized the separate
 admin web, Jeepney/Route Management and Phase 5 IoT Device Management. See sections 22–23,
 [ADMIN_WEB.md](ADMIN_WEB.md) and [JEEPNEY_MANAGEMENT.md](JEEPNEY_MANAGEMENT.md).
@@ -680,3 +686,33 @@ Dependency resolution, icon generation, Flutter analysis, 106 Flutter tests (one
 opt-in GPS integration test skipped) and the Android debug build passed. APK
 inspection confirmed all ten Android icon images and the adaptive resource wiring.
 Phone launcher verification remains pending because no device was attached.
+
+## 28. ESP32 firmware foundation — Phase 7A (2026-11-17)
+
+Checkpoint `checkpoint/firmware-foundation-2026-11-17` preserves `4a98f23` before
+firmware changes. `iot-firmware/` adds a pinned PlatformIO/Arduino project for the
+representative classic ESP32 `esp32dev` target, portable core tests, an actual
+C++-serializer-to-mocked-Express contract check and seven preparation guides.
+No purchased board/module/pins, operating records, SIM, carrier or APN is assumed.
+
+UART RMC provides actual coordinates and original GNSS UTC. A debounced two-contact
+latched switch or two momentary buttons provides manual FULL/AVAILABLE; startup and
+ambiguous inputs remain UNKNOWN. Reporting requires trusted UTC, a fresh valid fix
+and a known manual state. Wi-Fi reconnect, bounded backoff, HTTPS verification,
+no redirects, no backlog and a persistent rejected-token digest protect reporting.
+The existing API requires GPS and status together; no status-only endpoint is added.
+
+Per-device credentials and assignment come from existing Admin provisioning. The
+firmware does not register devices or choose routes/vehicles. Local secrets and
+binaries are ignored; public deployment still requires board-specific credential
+protection. A transport interface prepares for a concrete modem driver after exact
+hardware selection; no modem AT commands or vehicle power installation is implemented.
+
+See the firmware README for current-session software verification and exact commands.
+Both representative ESP32 builds passed, as did 30 native firmware tests, seven
+mocked firmware/Express contract checks, backend syntax checks and 57 database-free
+backend tests. Nine PostgreSQL suites were skipped; no database operations were run.
+No ESP32 upload, physical GPS acquisition, ESP32 Wi-Fi transmission or cellular operation
+is claimed. No backend/application/schema/database changes were needed; passenger
+Flutter, admin web and unrelated thesis edits are preserved. Next stage is hardware
+identification followed by supervised USB-powered GNSS/switch/Wi-Fi bench acceptance.

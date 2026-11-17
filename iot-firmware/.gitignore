@@ -1,0 +1,9 @@
+.pio/
+.local/
+.venv/
+.vscode/
+include/local_config.h
+*.bin
+*.elf
+*.map
+__pycache__/

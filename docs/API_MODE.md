@@ -1,5 +1,11 @@
 # Running AbangQue against the backend
 
+Phase 7A update (2026-11-17): the [ESP32 firmware foundation](../iot-firmware/README.md)
+uses the existing device API. Its [Wi-Fi bench guide](../iot-firmware/docs/WIFI_TESTING.md)
+explains explicit LAN binding/firewall configuration for future hardware testing.
+The Android USB/loopback workflow below is separate and remains unchanged. Physical
+ESP32/GPS/cellular validation is pending; no backend deployment is introduced.
+
 Phase 6 update (2026-11-14): [Admin Live GPS Monitoring](LIVE_MONITORING.md) now provides the protected report map, filters and historical device/vehicle details. Migration 009 adds one receipt lookup index; earlier Live Monitoring deferral notes are historical.
 
 Phase 5 update (2026-11-14): [IoT Device Management](DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.

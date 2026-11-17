@@ -1,5 +1,11 @@
 # AbangQue passenger app
 
+Phase 7A update (2026-11-17): the [ESP32 Firmware Foundation](iot-firmware/README.md)
+adds PlatformIO/Arduino firmware, hardware-independent tests and preparation guides
+for real GNSS + manual FULL/AVAILABLE reporting through the existing API. Hardware
+models, physical bench validation, cellular communication and vehicle power wiring
+remain pending. Passenger/admin application code is unchanged by this phase.
+
 Phase 6 update (2026-11-14): [Admin Live GPS Monitoring](docs/LIVE_MONITORING.md) now provides the protected report map, filters and historical device/vehicle details. Migration 009 adds one receipt lookup index; earlier Live Monitoring deferral notes are historical.
 
 Phase 5 update (2026-11-14): [IoT Device Management](docs/DEVICE_MANAGEMENT.md) adds registrations, assignments, access controls and one-time credentials through migration 008. Earlier device-registry deferral notes are historical.
